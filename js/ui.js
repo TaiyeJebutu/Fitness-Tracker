@@ -39,7 +39,7 @@ export function sheet(title, build) {
   const close = () => { wrap.remove(); document.removeEventListener('keydown', esc); };
   const esc = e => e.key === 'Escape' && close();
   const body = h('div', { class: 'sheet-body' });
-  const wrap = h('div', { class: 'sheet-wrap', onclick: e => e.target === wrap && close() },
+  const wrap = h('div', { class: 'sheet-wrap', 'data-screen': location.hash || '#/', onclick: e => e.target === wrap && close() },
     h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
       h('div', { class: 'sheet-head' },
         h('h2', {}, title),

@@ -1,7 +1,7 @@
 // Caches the app so it opens with no signal. Bump VERSION when you change files.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const FILES = ['./', 'index.html', 'css/app.css', 'manifest.webmanifest',
-  'js/config.js', 'js/app.js', 'js/api.js', 'js/ui.js', 'js/store.js', 'js/workout.js', 'js/train.js', 'js/social.js', 'js/body.js',
+  'js/config.js', 'js/app.js', 'js/api.js', 'js/ui.js', 'js/store.js', 'js/workout.js', 'js/train.js', 'js/social.js', 'js/body.js', 'js/backup.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

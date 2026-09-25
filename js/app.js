@@ -5,6 +5,7 @@ import { renderWorkout, active, tickRest } from './workout.js';
 import { renderTrain, renderHistory, renderWorkoutDetail, renderRoutine, renderExercise } from './train.js';
 import { renderFeed, renderFriend, renderRanks } from './social.js';
 import { renderBody } from './body.js';
+import { exportData, importData } from './backup.js';
 
 const app = document.getElementById('app');
 const view = h('main', { id: 'view', tabindex: '-1' });
@@ -27,6 +28,8 @@ async function route() {
   });
   nav.querySelector('a[data-tab="#/"] span:last-child').textContent = active() ? 'Workout' : 'Train';
   window.scrollTo(0, 0);
+  // close pop-ups that belong to a different screen (e.g. after pressing Back)
+  document.querySelectorAll('.sheet-wrap').forEach(x => x.dataset.screen !== (location.hash || '#/') && x.remove());
   // each visit gets a fresh container, so a slow screen that finishes loading late can't draw over the current one
   const page = h('div', { class: 'page' });
   mount(view, page);
@@ -139,35 +142,15 @@ function renderMe(root) {
         h('button', { class: 'btn', type: 'submit' }, 'Save'))),
     h('section', { class: 'card' },
       h('strong', {}, 'Backup'),
-      h('p', { class: 'muted small' }, 'Download all your workouts, routines, body stats and exercise settings as a file.'),
-      h('button', { class: 'btn small', onclick: exportData }, 'Export my data')),
+      h('p', { class: 'muted small' }, 'Download all your workouts, routines, body stats and exercise settings as a file, or restore from one.'),
+      h('div', { class: 'row gap' },
+        h('button', { class: 'btn small', onclick: exportData }, 'Export my data'),
+        h('button', { class: 'btn small', onclick: importData }, 'Import a backup'))),
     h('section', { class: 'card muted small' },
       h('p', {}, 'Add to home screen: on iPhone tap Share → “Add to Home Screen”; on Android tap ⋮ → “Install app”.')),
     h('button', { class: 'btn danger ghost block', onclick: async () => {
       if (api.pendingCount() && !confirm('Some changes haven’t uploaded yet and will be lost. Sign out anyway?')) return;
       await api.signOut(); } }, 'Sign out'));
-}
-
-async function exportData() {
-  const uid = api.userId();
-  try {
-    const opt = { cache: false };
-    const [profile, workouts, routines, body, details, exercises] = await Promise.all([
-      api.get(`profiles?id=eq.${uid}&select=username,units,shared_metrics`, opt),
-      api.get(`workouts?owner=eq.${uid}&select=*,sets(*)&order=started_at.asc`, opt),
-      api.get(`routines?owner=eq.${uid}&select=*`, opt),
-      api.get(`body_metrics?owner=eq.${uid}&select=*&order=measured_on.asc`, opt),
-      api.get(`exercise_details?user_id=eq.${uid}&select=*`, opt),
-      api.get(`exercises?owner=eq.${uid}&select=*`, opt),
-    ]);
-    const names = Object.fromEntries(state.exercises.map(x => [x.id, x.name]));
-    const data = { exported_at: new Date().toISOString(), note: 'Weights in kg, lengths in cm.', profile: profile[0],
-      exercise_names: names, custom_exercises: exercises, routines, workouts, body_metrics: body, exercise_details: details };
-    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-    const a = h('a', { href: url, download: `fitness-backup-${new Date().toISOString().slice(0, 10)}.json` });
-    document.body.append(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-  } catch (e) { toast(e.message, 'err'); }
 }
 
 // ---------- sync indicator ----------------------------------------------

@@ -62,6 +62,7 @@ async function finish(w) {
   const asRoutineItems = doneItems.map(it => ({ exercise_id: it.exercise_id, sets: it.sets.filter(s => s.done).length,
     reps: it.targetReps || it.sets.find(s => s.done)?.reps || null, rest: it.rest }));
   const routine = state.routines.find(r => r.id === w.routine_id);
+  location.hash = '#/history/' + w.id;  // switch screen first, then show the pop-up on top
   sheet('Workout saved 💪', close => h('div', {},
     h('p', {}, `${logged} sets · ${duration(w.started_at, ended)}`),
     routine && h('button', { class: 'btn block', onclick: () => { saveRoutine({ ...routine, items: asRoutineItems }); toast('Routine updated'); close(); } },
@@ -70,7 +71,6 @@ async function finish(w) {
       saveRoutine({ id: api.uuid(), name: routine ? routine.name + ' (copy)' : w.name, items: asRoutineItems });
       toast('Saved as a routine'); close(); } }, 'Save as a new routine'),
     h('button', { class: 'btn primary block', onclick: close }, 'Done')));
-  location.hash = '#/history/' + w.id;
 }
 
 async function discard(w, skipConfirm) {

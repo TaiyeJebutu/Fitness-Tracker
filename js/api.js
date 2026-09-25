@@ -185,6 +185,23 @@ export const patch = (table, filter, values) =>
   raw(`/rest/v1/${table}?${filter}`, { method: 'PATCH', body: values, headers: { Prefer: 'return=minimal' } });
 export const insertNow = (table, row) =>
   raw(`/rest/v1/${table}`, { method: 'POST', body: row, headers: { Prefer: 'return=representation' } });
+/** Write many rows at once. mode: 'skip' keeps existing rows, 'overwrite' replaces them. */
+export async function bulkUpsert(table, rows, mode = 'skip', onConflict) {
+  const qs = onConflict ? '?on_conflict=' + onConflict : '';
+  const prefer = (mode === 'overwrite' ? 'resolution=merge-duplicates' : 'resolution=ignore-duplicates') + ',return=minimal';
+  for (let i = 0; i < rows.length; i += 500) {
+    await raw(`/rest/v1/${table}${qs}`, { method: 'POST', body: rows.slice(i, i + 500), headers: { Prefer: prefer } });
+  }
+}
+/** Read every matching row, a page at a time (Supabase returns at most 1000 per request). */
+export async function getAll(path) {
+  const out = [];
+  for (let offset = 0; ; offset += 1000) {
+    const page = await raw(`/rest/v1/${path}${path.includes('?') ? '&' : '?'}limit=1000&offset=${offset}`);
+    out.push(...page);
+    if (page.length < 1000) return out;
+  }
+}
 export const removeNow = (table, filter) =>
   raw(`/rest/v1/${table}?${filter}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
 
