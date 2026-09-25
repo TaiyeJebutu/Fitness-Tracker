@@ -3,6 +3,7 @@ import * as api from './api.js';
 import { state, exName, loadRoutines, saveRoutine } from './store.js';
 import { active, startWorkout, pickExercise, editDetails, detailsSummary } from './workout.js';
 import { details } from './store.js';
+import { avatar } from './avatar.js';
 import { h, mount, toast, confirmSheet, fmtW, fmtDate, fmtDay, duration, ago, spinner, lineChart, e1rm, toW, wUnit } from './ui.js';
 
 // ---------- Train home ---------------------------------------------------
@@ -33,21 +34,24 @@ export async function renderTrain(root) {
 
 async function history(limit = 50) {
   const uid = api.userId();
-  return api.get(`workouts?owner=eq.${uid}&ended_at=not.is.null&select=id,name,started_at,ended_at,sets(exercise_id,reps,weight_kg)&order=started_at.desc&limit=${limit}`);
+  return api.get(`workouts?owner=eq.${uid}&ended_at=not.is.null&select=id,name,started_at,ended_at,sets(exercise_id,reps,weight_kg,side)&order=started_at.desc&limit=${limit}`);
 }
 
-export function workoutCard(wk, who) {
+export function workoutCard(wk, who, prof) {
   const byEx = new Map();
   for (const s of wk.sets || []) byEx.set(s.exercise_id, [...(byEx.get(s.exercise_id) || []), s]);
   const vol = (wk.sets || []).reduce((t, s) => t + s.weight_kg * s.reps, 0);
+  // a left + right pair counts as one set
+  const count = sets => (sets.some(s => s.side) ? Math.max(sets.filter(s => s.side === 'L').length, sets.filter(s => s.side === 'R').length, sets.filter(s => !s.side).length) : sets.length);
+  const total = [...byEx.values()].reduce((n, sets) => n + count(sets), 0);
   return h('a', { class: 'card wk-card', href: '#/history/' + wk.id },
     h('div', { class: 'row between' },
-      h('strong', {}, who ? `${who} · ${wk.name}` : wk.name),
+      h('span', { class: 'row gap' }, prof && avatar(prof, 28), h('strong', {}, who ? `${who} · ${wk.name}` : wk.name)),
       h('span', { class: 'muted small' }, fmtDate(wk.started_at))),
-    h('div', { class: 'muted small' }, `${(wk.sets || []).length} sets · ${fmtW(vol)} total${wk.ended_at ? ' · ' + duration(wk.started_at, wk.ended_at) : ''}`),
+    h('div', { class: 'muted small' }, `${total} sets · ${fmtW(vol)} total${wk.ended_at ? ' · ' + duration(wk.started_at, wk.ended_at) : ''}`),
     h('ul', { class: 'wk-lines' }, [...byEx].slice(0, 6).map(([id, sets]) => {
       const best = sets.reduce((b, s) => (+s.weight_kg > +b.weight_kg ? s : b), sets[0]);
-      return h('li', {}, h('span', {}, `${sets.length} × ${exName(id)}`), h('span', { class: 'muted' }, `${fmtW(best.weight_kg)} × ${best.reps}`));
+      return h('li', {}, h('span', {}, `${count(sets)} × ${exName(id)}${sets.some(s => s.side) ? ' (L/R)' : ''}`), h('span', { class: 'muted' }, `${fmtW(best.weight_kg)} × ${best.reps}`));
     }), byEx.size > 6 && h('li', { class: 'muted' }, `+${byEx.size - 6} more`)));
 }
 
@@ -62,7 +66,7 @@ export async function renderHistory(root) {
 export async function renderWorkoutDetail(root, id) {
   mount(root, spinner());
   let wk;
-  try { wk = (await api.get(`workouts?id=eq.${id}&select=*,profiles(username),sets(*)`))?.[0]; }
+  try { wk = (await api.get(`workouts?id=eq.${id}&select=*,profiles(username,avatar_icon,avatar_color),sets(*)`))?.[0]; }
   catch (e) { mount(root, h('p', { class: 'muted' }, e.message)); return; }
   if (!wk) {
     // may still be waiting to sync
@@ -81,7 +85,7 @@ export async function renderWorkoutDetail(root, id) {
     wk.notes && h('p', { class: 'note' }, wk.notes),
     [...groups].map(([exId, sets]) => h('section', { class: 'card' },
       h('a', { href: '#/exercise/' + exId }, h('strong', {}, exName(exId))),
-      h('ol', { class: 'set-list' }, sets.map(s => h('li', {}, `${fmtW(s.weight_kg)} × ${s.reps}`,
+      h('ol', { class: 'set-list' }, sets.map(s => h('li', {}, s.side && h('span', { class: 'side-tag' }, s.side), `${fmtW(s.weight_kg)} × ${s.reps}`,
         e1rm(s.weight_kg, s.reps) && h('span', { class: 'muted small' }, ` · e1RM ${fmtW(e1rm(s.weight_kg, s.reps))}`)))))),
     mine && h('button', { class: 'btn danger ghost block', onclick: async () => {
       if (!(await confirmSheet('Delete workout?', 'This removes the workout and all its sets.'))) return;
@@ -133,7 +137,7 @@ export async function renderExercise(root, id) {
   const uid = api.userId();
   const [d, sets] = await Promise.all([
     details(id).catch(() => null),
-    api.get(`sets?owner=eq.${uid}&exercise_id=eq.${id}&select=workout_id,reps,weight_kg,created_at&order=created_at.asc&limit=2000`).catch(() => []),
+    api.get(`sets?owner=eq.${uid}&exercise_id=eq.${id}&select=workout_id,set_no,side,reps,weight_kg,created_at&order=created_at.asc&limit=2000`).catch(() => []),
   ]);
   const byWorkout = new Map();
   for (const s of sets) byWorkout.set(s.workout_id, [...(byWorkout.get(s.workout_id) || []), s]);
@@ -160,7 +164,7 @@ export async function renderExercise(root, id) {
     lineChart(sessions.filter(s => s.best > 0).map(s => ({ x: s.date, y: toW(s.best) })), { fmt: v => Math.round(v) + ' ' + wUnit(), label: `Estimated 1RM (${wUnit()})`, axis: v => Math.round(v) }),
     h('h2', {}, 'Sessions'),
     sessions.length ? [...sessions].reverse().slice(0, 30).map(s => h('div', { class: 'card row between' },
-      h('span', {}, fmtDate(s.date)), h('span', { class: 'muted small right' }, s.sets.map(x => `${fmtW(x.weight_kg, false)}×${x.reps}`).join('  '))))
+      h('span', {}, fmtDate(s.date)), h('span', { class: 'muted small right' }, s.sets.map(x => `${x.side || ''}${x.side ? ' ' : ''}${fmtW(x.weight_kg, false)}×${x.reps}`).join('  '))))
       : h('p', { class: 'muted' }, 'You haven’t logged this exercise yet.'));
 }
 export const stat = (label, value) => h('div', { class: 'stat' }, h('span', { class: 'muted small' }, label), h('strong', {}, value));

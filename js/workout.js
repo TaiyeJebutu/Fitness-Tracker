@@ -1,6 +1,7 @@
 // Active workout logging, exercise picker, exercise details and the rest timer.
 import * as api from './api.js';
 import { state, exName, addExercise, lastSets, details, saveDetails, saveRoutine, CATEGORIES } from './store.js';
+import { checkBadges } from './badges.js';
 import { h, mount, toast, sheet, confirmSheet, fmtW, toW, fromW, wUnit, clock, duration, currentPage } from './ui.js';
 
 const AKEY = 'ft.active';
@@ -21,20 +22,41 @@ export async function startWorkout(routine) {
   fillPrev(w);
 }
 
-function newItem(exercise_id, rest = 90, sets = 3, reps = null) {
-  return { key: api.uuid(), exercise_id, rest: rest || 90, targetReps: reps || null, prev: null,
-    sets: Array.from({ length: Math.max(1, sets || 1) }, (_, i) => ({ id: api.uuid(), set_no: i + 1, reps: reps || null, weight_kg: null, done: false })) };
+function newItem(exercise_id, rest = 90, sets = 3, reps = null, uni = false) {
+  const it = { key: api.uuid(), exercise_id, rest: rest || 90, targetReps: reps || null, prev: null, uni: false, sets: [] };
+  layout(it, Math.max(1, sets || 1), uni);
+  return it;
+}
+
+// Unilateral exercises get an L and an R row per set; others one row per set.
+const SIDES = uni => (uni ? ['L', 'R'] : [null]);
+function layout(it, count, uni) {
+  it.uni = !!uni;
+  it.sets = [];
+  for (let n = 1; n <= count; n++)
+    for (const side of SIDES(uni)) it.sets.push({ id: api.uuid(), set_no: n, side, reps: it.targetReps || null, weight_kg: null, done: false });
+}
+const setCount = it => new Set(it.sets.map(s => s.set_no)).size;
+const label = s => s.set_no + (s.side || '');
+
+/** Last time's numbers for this row: same side and set number if possible. */
+function prevFor(it, s) {
+  const prev = it.prev || [];
+  let pool = prev.filter(p => (p.side || null) === (s.side || null));
+  if (!pool.length) pool = prev.filter((p, i, a) => a.findIndex(q => q.set_no === p.set_no) === i); // other mode last time
+  return pool[s.set_no - 1] || null;
 }
 
 async function fillPrev(w) {
   await Promise.all(w.items.filter(it => it.prev == null).map(async it => {
-    const prev = await lastSets(it.exercise_id, w.id).catch(() => []);
+    const [prev, d] = await Promise.all([lastSets(it.exercise_id, w.id).catch(() => []), details(it.exercise_id).catch(() => null)]);
     const cur = active(); if (!cur || cur.id !== w.id) return;
     const target = cur.items.find(x => x.key === it.key); if (!target) return;
     target.prev = prev;
+    if (!!d?.unilateral !== target.uni && !target.sets.some(s => s.done)) layout(target, setCount(target), d?.unilateral);
     // prefill empty rows with last time's numbers
-    target.sets.forEach((s, i) => {
-      const p = prev[i] || prev[prev.length - 1];
+    target.sets.forEach(s => {
+      const p = prevFor(target, s) || prev[prev.length - 1];
       if (p && !s.done) { if (s.weight_kg == null) s.weight_kg = +p.weight_kg; if (s.reps == null) s.reps = p.reps; }
     });
     save(cur);
@@ -45,7 +67,7 @@ async function fillPrev(w) {
 function persistSet(w, item, s) {
   const position = w.items.indexOf(item);
   api.upsert('sets', { id: s.id, workout_id: w.id, owner: api.userId(), exercise_id: item.exercise_id,
-    position, set_no: s.set_no, reps: s.reps || 0, weight_kg: s.weight_kg || 0 });
+    position, set_no: s.set_no, reps: s.reps || 0, weight_kg: s.weight_kg || 0, ...(s.side ? { side: s.side } : {}) });
 }
 
 async function finish(w) {
@@ -58,8 +80,9 @@ async function finish(w) {
   api.upsert('workouts', { id: w.id, name: w.name, notes: w.notes || null, ended_at: ended, owner: api.userId(),
     started_at: w.started_at, routine_id: w.routine_id });
   api.LS.del(AKEY); stopRest();
+  setTimeout(checkBadges, 300);
   const doneItems = w.items.filter(it => it.sets.some(s => s.done));
-  const asRoutineItems = doneItems.map(it => ({ exercise_id: it.exercise_id, sets: it.sets.filter(s => s.done).length,
+  const asRoutineItems = doneItems.map(it => ({ exercise_id: it.exercise_id, sets: new Set(it.sets.filter(s => s.done).map(s => s.set_no)).size,
     reps: it.targetReps || it.sets.find(s => s.done)?.reps || null, rest: it.rest }));
   const routine = state.routines.find(r => r.id === w.routine_id);
   location.hash = '#/history/' + w.id;  // switch screen first, then show the pop-up on top
@@ -172,7 +195,7 @@ export async function editDetails(exerciseId, onSaved) {
   const d = (await details(exerciseId)) || {};
   sheet(exName(exerciseId), close => {
     const f = { machine_brand: d.machine_brand || '', machine_model: d.machine_model || '', seat_height: d.seat_height || '',
-      notes: d.notes || '', adjustments: (d.adjustments || []).map(a => ({ ...a })) };
+      notes: d.notes || '', adjustments: (d.adjustments || []).map(a => ({ ...a })), unilateral: !!d.unilateral };
     const adjBox = h('div', {});
     const drawAdj = () => mount(adjBox, f.adjustments.map((a, i) => h('div', { class: 'row gap adj' },
       h('input', { placeholder: 'e.g. Back pad', value: a.label, 'aria-label': 'Adjustment name', oninput: e => (a.label = e.target.value) }),
@@ -183,7 +206,10 @@ export async function editDetails(exerciseId, onSaved) {
     const field = (label, key, ph) => h('label', { class: 'field' }, h('span', {}, label),
       h('input', { value: f[key], placeholder: ph, oninput: e => (f[key] = e.target.value), 'data-noautofocus': '1' }));
     return h('div', {},
-      h('p', { class: 'muted small' }, 'Only you can see these.'),
+      h('label', { class: 'switch uni-switch' },
+        h('input', { type: 'checkbox', checked: f.unilateral, 'data-noautofocus': '1', onchange: e => (f.unilateral = e.target.checked) }),
+        h('span', {}, h('strong', {}, 'Unilateral (left & right)'), h('br'), h('span', { class: 'muted small' }, 'Log each side separately'))),
+      h('p', { class: 'muted small' }, 'Only you can see these settings.'),
       h('div', { class: 'row gap' }, field('Machine brand', 'machine_brand', 'e.g. Technogym'), field('Model', 'machine_model', 'e.g. Selection 700')),
       field('Seat height', 'seat_height', 'e.g. 5'),
       h('div', { class: 'field' }, h('span', {}, 'Other adjustments'), adjBox),
@@ -223,17 +249,27 @@ export function renderWorkout(root) {
       details(it.exercise_id).then(x => { detailCache.set(it.exercise_id, x); if (x) rerender(); });
     }
     const summary = detailsSummary(d);
+    const onDetails = f => {
+      detailCache.set(it.exercise_id, f);
+      if (f.unilateral !== it.uni) {
+        const cur = active(); const t = cur.items[idx];
+        if (t.sets.some(s => s.done)) toast('Left/right will apply next time you add this exercise');
+        else { layout(t, setCount(t), f.unilateral); t.sets.forEach(s => { const p = prevFor(t, s); if (p) { s.weight_kg = +p.weight_kg; s.reps = p.reps; } }); save(cur); }
+      }
+      rerender();
+    };
     const rows = it.sets.map((s, si) => {
-      const p = it.prev?.[si];
+      const p = prevFor(it, s);
+      const side = s.side === 'L' ? ' left' : s.side === 'R' ? ' right' : '';
       const wIn = h('input', { type: 'number', inputmode: 'decimal', step: 'any', min: 0, class: 'num',
-        value: s.weight_kg == null ? '' : +toW(s.weight_kg).toFixed(2), 'aria-label': `Set ${s.set_no} weight in ${wUnit()}`,
+        value: s.weight_kg == null ? '' : +toW(s.weight_kg).toFixed(2), 'aria-label': `Set ${s.set_no}${side} weight in ${wUnit()}`,
         onchange: e => { const cur = upd(c => { const t = c.items[idx].sets[si]; t.weight_kg = e.target.value === '' ? null : fromW(+e.target.value); });
           if (s.done) persistSet(cur, cur.items[idx], cur.items[idx].sets[si]); } });
       const rIn = h('input', { type: 'number', inputmode: 'numeric', min: 0, step: 1, class: 'num',
-        value: s.reps ?? '', placeholder: it.targetReps || '', 'aria-label': `Set ${s.set_no} reps`,
+        value: s.reps ?? '', placeholder: it.targetReps || '', 'aria-label': `Set ${s.set_no}${side} reps`,
         onchange: e => { const cur = upd(c => { c.items[idx].sets[si].reps = e.target.value === '' ? null : Math.round(+e.target.value); });
           if (s.done) persistSet(cur, cur.items[idx], cur.items[idx].sets[si]); } });
-      const tick = h('button', { class: 'tick' + (s.done ? ' on' : ''), 'aria-pressed': String(s.done), 'aria-label': `Log set ${s.set_no}`,
+      const tick = h('button', { class: 'tick' + (s.done ? ' on' : ''), 'aria-pressed': String(s.done), 'aria-label': `Log set ${s.set_no}${side}`,
         onclick: () => {
           const cur = upd(c => {
             const t = c.items[idx].sets[si];
@@ -247,13 +283,13 @@ export function renderWorkout(root) {
           else api.remove('sets', 'id=eq.' + t.id);
           rerender();
         } }, '✓');
-      return h('div', { class: 'set-row' + (s.done ? ' done' : '') },
-        h('span', { class: 'set-no' }, s.set_no),
+      return h('div', { class: 'set-row' + (s.done ? ' done' : '') + (s.side === 'R' ? ' side-r' : '') },
+        h('span', { class: 'set-no' + (s.side ? ' sided' : '') }, label(s)),
         h('span', { class: 'prev muted small' }, p ? `${fmtW(p.weight_kg, false)}×${p.reps}` : '—'),
         wIn, rIn, tick);
     });
     const menu = () => sheet(exName(it.exercise_id), close => h('div', { class: 'stack' },
-      h('button', { class: 'btn block', onclick: () => { close(); editDetails(it.exercise_id, f => { detailCache.set(it.exercise_id, f); rerender(); }); } }, 'Machine & seat settings'),
+      h('button', { class: 'btn block', onclick: () => { close(); editDetails(it.exercise_id, onDetails); } }, 'Machine & seat settings'),
       h('label', { class: 'field' }, h('span', {}, 'Rest timer (seconds)'),
         h('input', { type: 'number', inputmode: 'numeric', min: 0, step: 15, value: it.rest, 'data-noautofocus': '1',
           onchange: e => { upd(c => (c.items[idx].rest = Math.max(0, +e.target.value || 0))); } })),
@@ -266,7 +302,7 @@ export function renderWorkout(root) {
 
     return h('section', { class: 'card ex-card' },
       h('div', { class: 'ex-head' },
-        h('button', { class: 'ex-title', onclick: () => editDetails(it.exercise_id, f => { detailCache.set(it.exercise_id, f); rerender(); }) },
+        h('button', { class: 'ex-title', onclick: () => editDetails(it.exercise_id, onDetails) },
           h('strong', {}, exName(it.exercise_id)),
           h('span', { class: 'muted small' }, summary || 'Tap to add machine / seat settings')),
         h('button', { class: 'icon-btn', 'aria-label': 'Exercise options', onclick: menu }, '⋯')),
@@ -275,10 +311,17 @@ export function renderWorkout(root) {
       rows,
       h('div', { class: 'row gap' },
         h('button', { class: 'btn small', onclick: () => { upd(c => {
-          const t = c.items[idx]; const last = t.sets[t.sets.length - 1]; const p = t.prev?.[t.sets.length];
-          t.sets.push({ id: api.uuid(), set_no: t.sets.length + 1, reps: p?.reps ?? last?.reps ?? t.targetReps, weight_kg: p ? +p.weight_kg : last?.weight_kg ?? null, done: false }); }); rerender(); } }, '＋ Add set'),
-        it.sets.length > 1 && h('button', { class: 'btn small ghost', onclick: () => { upd(c => {
-          const s = c.items[idx].sets.pop(); if (s.done) api.remove('sets', 'id=eq.' + s.id); }); rerender(); } }, 'Remove last set')));
+          const t = c.items[idx]; const n = setCount(t) + 1;
+          for (const side of SIDES(t.uni)) {
+            const last = [...t.sets].reverse().find(x => (x.side || null) === side);
+            const row = { id: api.uuid(), set_no: n, side, done: false };
+            const p = prevFor(t, row);
+            t.sets.push({ ...row, reps: p?.reps ?? last?.reps ?? t.targetReps, weight_kg: p ? +p.weight_kg : last?.weight_kg ?? null });
+          } }); rerender(); } }, '＋ Add set'),
+        setCount(it) > 1 && h('button', { class: 'btn small ghost', onclick: () => { upd(c => {
+          const t = c.items[idx]; const n = setCount(t);
+          t.sets.filter(x => x.set_no === n && x.done).forEach(x => api.remove('sets', 'id=eq.' + x.id));
+          t.sets = t.sets.filter(x => x.set_no !== n); }); rerender(); } }, 'Remove last set')));
   });
 
   mount(root, header,

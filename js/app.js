@@ -6,11 +6,14 @@ import { renderTrain, renderHistory, renderWorkoutDetail, renderRoutine, renderE
 import { renderFeed, renderFriend, renderRanks } from './social.js';
 import { renderBody } from './body.js';
 import { exportData, importData } from './backup.js';
+import { avatar, editAvatar } from './avatar.js';
+import { renderBadges, checkBadges, earnedBy, badgeStrip, TOTAL } from './badges.js';
 
 const app = document.getElementById('app');
 const view = h('main', { id: 'view', tabindex: '-1' });
 const restbar = h('div', { id: 'restbar', class: 'restbar', hidden: true });
 const syncDot = h('span', { class: 'sync', title: '' });
+const updateBar = h('button', { class: 'update-banner', hidden: true, onclick: applyUpdate });
 
 const NAV = [['#/', 'Train', '🏋️'], ['#/feed', 'Friends', '👥'], ['#/ranks', 'Ranks', '🏆'], ['#/body', 'Body', '📏'], ['#/me', 'Me', '⚙️']];
 const nav = h('nav', { class: 'tabbar', 'aria-label': 'Main' },
@@ -20,11 +23,12 @@ const nav = h('nav', { class: 'tabbar', 'aria-label': 'Main' },
 async function route() {
   if (!api.configured()) return renderSetupNeeded();
   if (!api.session()) return renderAuth();
-  if (!app.contains(view)) mount(app, h('header', { class: 'topbar' }, h('span', { class: 'brand' }, 'Fitness Tracker'), syncDot), restbar, view, nav);
+  if (!app.contains(view)) mountShell();
   const [, a = '', b] = (location.hash || '#/').slice(1).split('/');
   nav.querySelectorAll('a').forEach(x => {
     const t = x.dataset.tab.slice(2);
-    x.classList.toggle('on', t === a || (t === '' && ['', 'workout', 'routine', 'history', 'exercise'].includes(a)) || (t === 'feed' && ['friends', 'friend'].includes(a)));
+    x.classList.toggle('on', t === a || (t === '' && ['', 'workout', 'routine', 'history', 'exercise'].includes(a)) || (t === 'feed' && ['friends', 'friend'].includes(a))
+      || (t === 'me' && a === 'badges' && !b) || (t === 'feed' && a === 'badges' && !!b));
   });
   nav.querySelector('a[data-tab="#/"] span:last-child').textContent = active() ? 'Workout' : 'Train';
   window.scrollTo(0, 0);
@@ -46,6 +50,7 @@ async function route() {
       case 'ranks': return await renderRanks(page, b);
       case 'body': return await renderBody(page, b);
       case 'me': return renderMe(page);
+      case 'badges': return await renderBadges(page, b);
       default: location.hash = '#/';
     }
   } catch (e) {
@@ -110,10 +115,19 @@ function renderMe(root) {
     catch (e) { toast(e.message, 'err'); }
   };
   const pending = api.pendingCount();
+  const badgesCard = h('section', { class: 'card' }, h('strong', {}, 'Badges'));
+  const versionLine = h('p', { class: 'version muted small' }, `Fitness Tracker v${window.APP_VERSION}`,
+    h('br'), h('button', { class: 'link small', onclick: async e => {
+      e.target.textContent = 'Checking…';
+      const v = await checkUpdate();
+      e.target.textContent = v == null ? 'Couldn’t check (offline?)' : v === window.APP_VERSION ? '✓ You have the latest version' : `Version ${v} available — tap the banner above`;
+    } }, 'Check for updates'));
   mount(root,
     h('h1', {}, 'Me'),
     h('section', { class: 'card' },
-      h('p', {}, h('strong', {}, '@' + (p.username || '…')), h('br'), h('span', { class: 'muted small' }, api.session()?.user?.email || '')),
+      h('div', { class: 'row gap me-head' },
+        h('button', { class: 'avatar-btn', 'aria-label': 'Change avatar', onclick: () => editAvatar(() => renderMe(root)) }, avatar(p, 56), h('span', { class: 'avatar-edit', 'aria-hidden': 'true' }, '✎')),
+        h('p', {}, h('strong', {}, '@' + (p.username || '…')), h('br'), h('span', { class: 'muted small' }, api.session()?.user?.email || ''))),
       h('form', { class: 'row gap', onsubmit: async e => {
         e.preventDefault();
         if (!/^[A-Za-z0-9_]{3,20}$/.test(uname)) return toast('3–20 letters, numbers or _', 'err');
@@ -121,6 +135,8 @@ function renderMe(root) {
         catch (x) { toast(x.message, 'err'); } } },
         h('input', { value: uname, 'aria-label': 'Username', autocapitalize: 'off', 'data-noautofocus': '1', oninput: e => (uname = e.target.value) }),
         h('button', { class: 'btn', type: 'submit' }, 'Rename'))),
+    badgesCard,
+    appearanceCard(root),
     h('section', { class: 'card' },
       h('strong', {}, 'Units'),
       h('div', { class: 'seg', role: 'group', 'aria-label': 'Units' },
@@ -150,7 +166,32 @@ function renderMe(root) {
       h('p', {}, 'Add to home screen: on iPhone tap Share → “Add to Home Screen”; on Android tap ⋮ → “Install app”.')),
     h('button', { class: 'btn danger ghost block', onclick: async () => {
       if (api.pendingCount() && !confirm('Some changes haven’t uploaded yet and will be lost. Sign out anyway?')) return;
-      await api.signOut(); } }, 'Sign out'));
+      await api.signOut(); } }, 'Sign out'),
+    versionLine);
+  earnedBy(api.userId()).then(rows => mount(badgesCard,
+    h('a', { class: 'row between', href: '#/badges' }, h('strong', {}, `Badges · ${rows.length} of ${TOTAL}`), h('span', { class: 'muted' }, '›')),
+    badgeStrip(rows, 6)));
+}
+
+function appearanceCard(root) {
+  const t = window.FTTheme.load();
+  const set = patch => { const n = { ...window.FTTheme.load(), ...patch }; window.FTTheme.save(n); window.FTTheme.apply(n); renderMe(root); };
+  const mode = t.mode || 'auto';
+  const accent = window.FTTheme.valid(t.accent) ? t.accent.toLowerCase() : '#2f5fe0';
+  const isPreset = window.FTTheme.PRESETS.some(([, c]) => c === accent);
+  return h('section', { class: 'card' },
+    h('strong', {}, 'Appearance'),
+    h('div', { class: 'seg', role: 'group', 'aria-label': 'Light or dark' },
+      [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, l]) =>
+        h('button', { class: mode === k ? 'on' : '', 'aria-pressed': String(mode === k), onclick: () => set({ mode: k }) }, l))),
+    h('p', { class: 'muted small' }, 'Auto follows your phone’s setting. Colour choices are saved on this device.'),
+    h('div', { class: 'swatches', role: 'radiogroup', 'aria-label': 'Accent colour' },
+      window.FTTheme.PRESETS.map(([name, c]) => h('button', { class: 'swatch' + (c === accent ? ' on' : ''), role: 'radio', 'aria-checked': String(c === accent),
+        'aria-label': name, title: name, style: { background: c }, onclick: () => set({ accent: c }) })),
+      h('label', { class: 'swatch custom' + (!isPreset ? ' on' : ''), title: 'Pick any colour', style: !isPreset ? { background: accent } : null },
+        h('span', { class: 'sr-only' }, 'Pick any colour'),
+        h('input', { type: 'color', value: accent, onchange: e => set({ accent: e.target.value }) }))),
+    h('p', { class: 'muted small' }, 'Colours are adjusted automatically so text stays readable.'));
 }
 
 // ---------- sync indicator ----------------------------------------------
@@ -164,13 +205,39 @@ api.onSync(({ pending, offline, error }) => {
 async function boot() {
   if (!api.configured() || !api.session()) return route();
   setUnits(state.profile?.units);
-  mount(app, h('header', { class: 'topbar' }, h('span', { class: 'brand' }, 'Fitness Tracker'), syncDot), restbar, view, nav);
+  mountShell();
   await Promise.all([loadProfile().catch(() => {}), loadExercises().catch(() => {})]);
   loadRoutines().catch(() => {}); loadFriends().catch(() => {});
   api.flush();
   route();
   tickRest();
+  checkUpdate();
+  setTimeout(checkBadges, 1500);  // awards any badges already earned (e.g. from past workouts)
 }
+
+function mountShell() {
+  mount(app, h('header', { class: 'topbar' }, h('span', { class: 'brand' }, 'Fitness Tracker'), syncDot), updateBar, restbar, view, nav);
+}
+
+// ---------- updates ------------------------------------------------------
+let latest = null;
+async function checkUpdate() {
+  try {
+    const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+    latest = (await r.json()).version || null;
+  } catch { return null; }   // offline: try again later
+  const newer = latest && latest !== window.APP_VERSION;
+  updateBar.hidden = !newer;
+  if (newer) mount(updateBar, h('span', {}, `Version ${latest} is available`), h('span', {}, 'Tap to update ↻'));
+  return latest;
+}
+async function applyUpdate() {
+  updateBar.textContent = 'Updating…';
+  try { const reg = await navigator.serviceWorker?.getRegistration(); await reg?.update(); } catch {}
+  setTimeout(() => location.reload(), 600);
+}
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && api.session() && checkUpdate());
+setInterval(() => api.session() && checkUpdate(), 30 * 60000);
 
 api.onAuth(s => { if (!s) { state.profile = null; renderAuth(); } });
 window.addEventListener('hashchange', route);

@@ -1,0 +1,7 @@
+# Files the Claude app saves into this folder (previews, screenshots) - never publish them
+Claude outputs/
+
+# Local publish helpers
+publish.bat
+commit-msg.txt
+publish-log.txt

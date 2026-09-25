@@ -2,6 +2,7 @@
 import * as api from './api.js';
 import { state, METRICS } from './store.js';
 import { fmtMetric } from './social.js';
+import { checkBadges } from './badges.js';
 import { h, mount, toast, spinner, lineChart, toW, fromW, toL, fromL, wUnit, lUnit, fmtDay, todayISO, currentPage } from './ui.js';
 
 const unitFor = def => (def.kind === 'w' ? wUnit() : def.kind === 'pct' ? '%' : lUnit());
@@ -33,6 +34,7 @@ export async function renderBody(root, key = 'bodyweight') {
     api.upsert('body_metrics', { id: api.uuid(), owner: uid, metric: def.key, value: +fromView(def, n).toFixed(3), measured_on: date });
     toast('Saved');
     renderBody(root, def.key);
+    checkBadges();
   };
   const latest = rows[rows.length - 1];
   mount(content,

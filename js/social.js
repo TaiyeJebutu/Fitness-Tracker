@@ -2,6 +2,8 @@
 import * as api from './api.js';
 import { state, loadFriends, loadExercises, exName, saveRoutine, METRICS } from './store.js';
 import { workoutCard, stat } from './train.js';
+import { avatar, profileById } from './avatar.js';
+import { checkBadges, earnedBy, badgeStrip, badgeFeedItems } from './badges.js';
 import { h, mount, toast, confirmSheet, spinner, fmtW, fmtL, fmtBig, mondayStart, lineChart, toW, wUnit, currentPage } from './ui.js';
 
 // ---------- Feed + friends ----------------------------------------------
@@ -24,10 +26,14 @@ async function feed(body) {
   }
   try {
     const ids = state.friends.map(f => f.id).join(',');
-    const list = await api.get(`workouts?owner=in.(${ids})&ended_at=not.is.null&select=id,name,owner,started_at,ended_at,profiles(username),sets(exercise_id,reps,weight_kg)&order=started_at.desc&limit=40`);
+    const [list, earned] = await Promise.all([
+      api.get(`workouts?owner=in.(${ids})&ended_at=not.is.null&select=id,name,owner,started_at,ended_at,profiles(username,avatar_icon,avatar_color),sets(exercise_id,reps,weight_kg,side)&order=started_at.desc&limit=40`),
+      api.get(`achievements?user_id=in.(${ids})&select=user_id,badge,earned_at&order=earned_at.desc&limit=100`).catch(() => [])]);
     // friends' custom exercises need names too
     if (list.some(w => w.sets.some(s => !state.exById.has(s.exercise_id)))) await loadExercises();
-    mount(body, list.length ? list.map(w => workoutCard(w, '@' + w.profiles?.username)) : h('p', { class: 'muted' }, 'No friend workouts yet.'));
+    const items = [...list.map(w => ({ at: w.started_at, el: workoutCard(w, '@' + w.profiles?.username, w.profiles) })), ...badgeFeedItems(earned)]
+      .sort((a, b) => new Date(b.at) - new Date(a.at));
+    mount(body, items.length ? items.map(i => i.el) : h('p', { class: 'muted' }, 'No friend workouts yet.'));
   } catch (e) { mount(body, h('p', { class: 'muted' }, e.message)); }
 }
 
@@ -54,7 +60,7 @@ function friends(body, incoming) {
   };
   const accept = async r => {
     try { await api.patch('friendships', `requester=eq.${r.requester}&addressee=eq.${r.addressee}`, { status: 'accepted' });
-      toast('Friend added'); await loadExercises(); renderFeed(currentPage(), 'friends'); }
+      toast('Friend added'); await loadExercises(); renderFeed(currentPage(), 'friends'); checkBadges(); }
     catch (e) { toast(e.message, 'err'); }
   };
   const drop = async (r, msg) => {
@@ -69,14 +75,14 @@ function friends(body, incoming) {
       h('button', { class: 'btn primary', type: 'submit' }, 'Add')),
     h('p', { class: 'muted small' }, `Your username is @${state.profile?.username || '…'} — share it with friends.`),
     incoming.length > 0 && [h('h2', {}, 'Requests'), incoming.map(r => h('div', { class: 'card row between' },
-      h('strong', {}, '@' + r.req?.username),
+      h('span', { class: 'row gap' }, avatar(r.req, 32), h('strong', {}, '@' + r.req?.username)),
       h('div', { class: 'row gap' }, h('button', { class: 'btn small primary', onclick: () => accept(r) }, 'Accept'),
         h('button', { class: 'btn small ghost', onclick: () => drop(r) }, 'Decline'))))],
     h('h2', {}, 'Friends'),
     state.friends.length ? state.friends.map(f => h('a', { class: 'card row between', href: '#/friend/' + f.id },
-      h('strong', {}, '@' + f.username), h('span', { class: 'muted' }, '›'))) : h('p', { class: 'muted' }, 'No friends yet.'),
+      h('span', { class: 'row gap' }, avatar(f, 32), h('strong', {}, '@' + f.username)), h('span', { class: 'muted' }, '›'))) : h('p', { class: 'muted' }, 'No friends yet.'),
     outgoing.length > 0 && [h('h2', {}, 'Sent'), outgoing.map(r => h('div', { class: 'card row between' },
-      h('span', {}, '@' + r.adr?.username, h('span', { class: 'muted small' }, ' · waiting')),
+      h('span', { class: 'row gap' }, avatar(r.adr, 32), h('span', {}, '@' + r.adr?.username, h('span', { class: 'muted small' }, ' · waiting'))),
       h('button', { class: 'btn small ghost', onclick: () => drop(r) }, 'Cancel')))]);
 }
 
@@ -86,10 +92,11 @@ export async function renderFriend(root, id) {
   if (!state.friends.length) await loadFriends().catch(() => {});
   const f = state.friends.find(x => x.id === id);
   if (!f) { mount(root, h('p', { class: 'muted' }, 'Not in your friends list.'), h('a', { class: 'btn', href: '#/friends' }, 'Back')); return; }
-  const [routines, metrics, recent] = await Promise.all([
+  const [routines, metrics, recent, earned] = await Promise.all([
     api.get(`routines?owner=eq.${id}&select=*&order=name`).catch(() => []),
     api.get(`body_metrics?owner=eq.${id}&select=metric,value,measured_on&order=measured_on.asc`).catch(() => []),
-    api.get(`workouts?owner=eq.${id}&ended_at=not.is.null&select=id,name,started_at,ended_at,sets(exercise_id,reps,weight_kg)&order=started_at.desc&limit=5`).catch(() => []),
+    api.get(`workouts?owner=eq.${id}&ended_at=not.is.null&select=id,name,started_at,ended_at,sets(exercise_id,reps,weight_kg,side)&order=started_at.desc&limit=5`).catch(() => []),
+    earnedBy(id),
   ]);
   if ([...routines.flatMap(r => r.items), ...recent.flatMap(w => w.sets)].some(x => !state.exById.has(x.exercise_id))) await loadExercises().catch(() => {});
   const byMetric = new Map();
@@ -97,7 +104,9 @@ export async function renderFriend(root, id) {
   const friendRow = state.friendRows.find(r => r.status === 'accepted' && (r.requester === id || r.addressee === id));
   mount(root,
     h('a', { class: 'back', href: '#/friends' }, '‹ Friends'),
-    h('h1', {}, '@' + f.username),
+    h('div', { class: 'row gap' }, avatar(f, 52), h('h1', {}, '@' + f.username)),
+    h('div', { class: 'section-head' }, h('h2', {}, `Badges (${earned.length})`), h('a', { class: 'btn small ghost', href: '#/badges/' + f.id }, 'See all')),
+    badgeStrip(earned, 8),
     h('h2', {}, 'Routines'),
     routines.length ? routines.map(r => h('div', { class: 'card routine' },
       h('div', { class: 'routine-info' }, h('strong', {}, r.name), h('span', { class: 'muted small' }, r.items.map(i => exName(i.exercise_id)).join(', '))),
@@ -132,8 +141,9 @@ function copyRoutine(r, from) {
     state.exercises.push(copy); state.exById.set(copy.id, copy);
     return { ...it, exercise_id: copy.id };
   });
-  saveRoutine({ id: api.uuid(), name: `${r.name} (from @${from})`.slice(0, 80), items });
+  saveRoutine({ id: api.uuid(), name: `${r.name} (from @${from})`.slice(0, 80), items, copied_from: r.id });
   toast('Copied to your routines');
+  checkBadges();
 }
 
 // ---------- Leaderboards -------------------------------------------------
@@ -172,7 +182,7 @@ export async function renderRanks(root, tab = 'lift') {
       }
       board.append(rows.length ? h('ol', { class: 'board' }, rows.map((r, i) => h('li', { class: r.user_id === me ? 'me' : '' },
         h('span', { class: 'rank' }, i + 1),
-        h('span', { class: 'who' }, '@' + r.username, r.user_id === me && h('span', { class: 'muted small' }, ' (you)')),
+        h('span', { class: 'who row gap' }, avatar(profileById(r.user_id), 28), h('span', {}, '@' + r.username, r.user_id === me && h('span', { class: 'muted small' }, ' (you)'))),
         h('span', { class: 'val' }, h('strong', {}, r.main), h('span', { class: 'muted small' }, r.sub)))))
         : h('p', { class: 'muted center' }, state.friends.length || tab !== 'activity' ? 'No data yet — go lift something!' : 'No data yet.'));
     } catch (e) { mount(board, h('p', { class: 'muted' }, e.message)); }

@@ -95,7 +95,7 @@ async function runImport(d, mode, progress) {
   for (const r of d.routines) {
     const id = await idFor(mine.r, r.id); routineMap.set(r.id, id);
     routines.push({ id, owner: uid, name: String(r.name || 'Routine').slice(0, 80), created_at: r.created_at || now, updated_at: r.updated_at || now,
-      items: (r.items || []).filter(i => exMap.get(i.exercise_id)).map(i => ({ ...i, exercise_id: exMap.get(i.exercise_id) })) });
+      copied_from: r.copied_from ?? null, items: (r.items || []).filter(i => exMap.get(i.exercise_id)).map(i => ({ ...i, exercise_id: exMap.get(i.exercise_id) })) });
   }
   const workouts = [], sets = [];
   for (const w of d.workouts) {
@@ -106,7 +106,7 @@ async function runImport(d, mode, progress) {
     for (const s of w.sets) {
       if (!exMap.get(s.exercise_id)) continue;
       sets.push({ id: id === w.id ? s.id : await deriveId(s.id, uid), workout_id: id, owner: uid, exercise_id: exMap.get(s.exercise_id),
-        position: s.position ?? 0, set_no: s.set_no ?? 1, reps: s.reps ?? 0, weight_kg: s.weight_kg ?? 0, created_at: s.created_at || start });
+        position: s.position ?? 0, set_no: s.set_no ?? 1, reps: s.reps ?? 0, weight_kg: s.weight_kg ?? 0, side: s.side === 'L' || s.side === 'R' ? s.side : null, created_at: s.created_at || start });
     }
   }
   const body = [];
@@ -114,7 +114,7 @@ async function runImport(d, mode, progress) {
     body.push({ id: await idFor(mine.b, b.id), owner: uid, metric: b.metric, value: b.value, measured_on: b.measured_on || now.slice(0, 10), created_at: b.created_at || now });
   const details = d.exercise_details.filter(x => exMap.get(x.exercise_id)).map(x => ({
     user_id: uid, exercise_id: exMap.get(x.exercise_id), machine_brand: x.machine_brand ?? null, machine_model: x.machine_model ?? null,
-    seat_height: x.seat_height ?? null, adjustments: x.adjustments || [], notes: x.notes ?? null, updated_at: x.updated_at || now }));
+    seat_height: x.seat_height ?? null, adjustments: x.adjustments || [], notes: x.notes ?? null, unilateral: !!x.unilateral, updated_at: x.updated_at || now }));
 
   if (mode === 'replace') {
     progress('Clearing your current data…');

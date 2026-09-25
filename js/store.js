@@ -6,7 +6,7 @@ export const state = {
   profile: null,
   exercises: [],        // built-in + mine + friends' custom
   exById: new Map(),
-  friends: [],          // [{id, username}]
+  friends: [],          // [{id, username, avatar_icon, avatar_color}]
   friendRows: [],       // raw friendship rows
   routines: [],
 };
@@ -49,7 +49,7 @@ export const exName = id => state.exById.get(id)?.name || 'Unknown exercise';
 export async function loadFriends() {
   const uid = api.userId();
   const rows = await api.get('friendships?select=requester,addressee,status,created_at,' +
-    'req:profiles!friendships_requester_fkey(id,username),adr:profiles!friendships_addressee_fkey(id,username)');
+    'req:profiles!friendships_requester_fkey(id,username,avatar_icon,avatar_color),adr:profiles!friendships_addressee_fkey(id,username,avatar_icon,avatar_color)');
   state.friendRows = rows || [];
   state.friends = state.friendRows.filter(r => r.status === 'accepted')
     .map(r => (r.requester === uid ? r.adr : r.req)).filter(Boolean)
@@ -81,13 +81,13 @@ export function saveRoutine(r) {
 /** My most recent sets for an exercise from a previous workout (for "last time" hints). */
 export async function lastSets(exerciseId, excludeWorkout) {
   const uid = api.userId();
-  const path = `sets?owner=eq.${uid}&exercise_id=eq.${exerciseId}&select=workout_id,set_no,reps,weight_kg,created_at&order=created_at.desc&limit=40`;
+  const path = `sets?owner=eq.${uid}&exercise_id=eq.${exerciseId}&select=workout_id,set_no,side,reps,weight_kg,created_at&order=created_at.desc&limit=60`;
   let rows = [];
   try { rows = await api.get(path); } catch { rows = api.cached(path) || []; }
   rows = rows.filter(r => r.workout_id !== excludeWorkout);
   if (!rows.length) return [];
   const wid = rows[0].workout_id;
-  return rows.filter(r => r.workout_id === wid).sort((a, b) => a.set_no - b.set_no);
+  return rows.filter(r => r.workout_id === wid).sort((a, b) => a.set_no - b.set_no || (a.side || '').localeCompare(b.side || ''));
 }
 
 export async function details(exerciseId) {
