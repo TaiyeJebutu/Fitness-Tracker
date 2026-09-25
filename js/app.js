@@ -8,12 +8,14 @@ import { renderBody } from './body.js';
 import { exportData, importData } from './backup.js';
 import { avatar, editAvatar } from './avatar.js';
 import { renderFeedback, renderPost } from './feedback.js';
+import { renderHelp, helpHref, maybeShowWhatsNew } from './help.js';
 import { renderBadges, checkBadges, earnedBy, badgeStrip, TOTAL } from './badges.js';
 
 const app = document.getElementById('app');
 const view = h('main', { id: 'view', tabindex: '-1' });
 const restbar = h('div', { id: 'restbar', class: 'restbar', hidden: true });
 const syncDot = h('span', { class: 'sync', title: '' });
+const helpBtn = h('button', { class: 'icon-btn help-btn', 'aria-label': 'Help for this screen', title: 'Help', onclick: () => { location.hash = helpHref(); } }, '?');
 const updateBar = h('button', { class: 'update-banner', hidden: true, onclick: applyUpdate });
 
 const NAV = [['#/', 'Train', '🏋️'], ['#/feed', 'Friends', '👥'], ['#/ranks', 'Ranks', '🏆'], ['#/body', 'Body', '📏'], ['#/me', 'Me', '⚙️']];
@@ -54,6 +56,7 @@ async function route() {
       case 'body': return await renderBody(page, b);
       case 'me': return renderMe(page);
       case 'badges': return await renderBadges(page, b);
+      case 'help': return renderHelp(page, b);
       default: location.hash = '#/';
     }
   } catch (e) {
@@ -217,11 +220,12 @@ async function boot() {
   route();
   tickRest();
   checkUpdate();
-  setTimeout(checkBadges, 1500);  // awards any badges already earned (e.g. from past workouts)
+  setTimeout(checkBadges, 1500);
+  setTimeout(maybeShowWhatsNew, 800);  // awards any badges already earned (e.g. from past workouts)
 }
 
 function mountShell() {
-  mount(app, h('header', { class: 'topbar' }, h('span', { class: 'brand' }, 'Fitness Tracker'), syncDot), updateBar, restbar, view, nav);
+  mount(app, h('header', { class: 'topbar' }, h('span', { class: 'brand' }, 'Fitness Tracker'), h('span', { class: 'row gap' }, syncDot, helpBtn)), updateBar, restbar, view, nav);
 }
 
 // ---------- updates ------------------------------------------------------

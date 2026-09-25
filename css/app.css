@@ -305,3 +305,13 @@ input.short { flex: 0 0 5rem; }
 .fb-text { margin: 6px 0 0; }
 .fb-reply { display: flex; gap: 8px; align-items: flex-end; margin-top: 8px; }
 .fb-reply textarea { flex: 1; }
+
+/* help & guide */
+.help-btn { min-width: 34px; min-height: 34px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-weight: 700; color: var(--accent); }
+.guide-body p { margin: 10px 0; }
+.guide-steps { padding-left: 1.3rem; margin: 10px 0; }
+.guide-steps li { margin: 6px 0; }
+.guide-tip { background: var(--accent-soft); border-radius: 12px; padding: 10px 12px; }
+.guide-list { padding-left: 1.2rem; margin: 8px 0; }
+.guide-list li { margin: 6px 0; }
+.whats-new-link { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); margin-top: 12px; }
