@@ -99,7 +99,8 @@ export async function details(exerciseId) {
 }
 
 export function saveDetails(exerciseId, d) {
-  const row = { user_id: api.userId(), exercise_id: exerciseId, ...d, updated_at: new Date().toISOString() };
+  // merge with what we already know, so saving one setting (e.g. left/right) keeps the others
+  const row = { ...(api.LS.get('ft.details.' + exerciseId) || {}), user_id: api.userId(), exercise_id: exerciseId, ...d, updated_at: new Date().toISOString() };
   api.LS.set('ft.details.' + exerciseId, row);
   api.upsert('exercise_details', row, 'user_id,exercise_id');
 }
@@ -119,3 +120,27 @@ export const METRICS = [
   { key: 'thighs', label: 'Thighs', kind: 'l' },
   { key: 'calves', label: 'Calves', kind: 'l' },
 ];
+
+/** Remember left/right for an exercise (applies everywhere it's used). */
+export function setUnilateral(exerciseId, on) { saveDetails(exerciseId, { unilateral: !!on }); }
+
+/** Rename / re-categorise one of your own exercises. */
+export function updateExercise(id, patch) {
+  const ex = state.exById.get(id);
+  if (!ex || ex.owner !== api.userId()) return;
+  Object.assign(ex, patch);
+  api.upsert('exercises', { id, owner: ex.owner, name: ex.name, category: ex.category });
+  state.exercises.sort((a, b) => a.name.localeCompare(b.name));
+  const local = api.LS.get(MY_EX, []);
+  const i = local.findIndex(x => x.id === id);
+  if (i >= 0) { local[i] = { ...local[i], ...patch }; api.LS.set(MY_EX, local); }
+}
+
+/** Delete one of your own exercises (its logged sets are deleted with it). */
+export async function deleteExercise(id) {
+  await api.removeNow('exercises', 'id=eq.' + id);
+  state.exercises = state.exercises.filter(x => x.id !== id);
+  state.exById.delete(id);
+  api.LS.set(MY_EX, api.LS.get(MY_EX, []).filter(x => x.id !== id));
+  api.LS.del('ft.details.' + id);
+}

@@ -2,11 +2,12 @@ import * as api from './api.js';
 import { state, loadProfile, loadExercises, loadFriends, loadRoutines } from './store.js';
 import { h, mount, toast, setUnits, getUnits } from './ui.js';
 import { renderWorkout, active, tickRest } from './workout.js';
-import { renderTrain, renderHistory, renderWorkoutDetail, renderRoutine, renderExercise } from './train.js';
+import { renderTrain, renderHistory, renderWorkoutDetail, renderRoutine, renderExercise, renderExercises } from './train.js';
 import { renderFeed, renderFriend, renderRanks } from './social.js';
 import { renderBody } from './body.js';
 import { exportData, importData } from './backup.js';
 import { avatar, editAvatar } from './avatar.js';
+import { renderFeedback, renderPost } from './feedback.js';
 import { renderBadges, checkBadges, earnedBy, badgeStrip, TOTAL } from './badges.js';
 
 const app = document.getElementById('app');
@@ -28,7 +29,7 @@ async function route() {
   nav.querySelectorAll('a').forEach(x => {
     const t = x.dataset.tab.slice(2);
     x.classList.toggle('on', t === a || (t === '' && ['', 'workout', 'routine', 'history', 'exercise'].includes(a)) || (t === 'feed' && ['friends', 'friend'].includes(a))
-      || (t === 'me' && a === 'badges' && !b) || (t === 'feed' && a === 'badges' && !!b));
+      || (t === 'me' && ((a === 'badges' && !b) || a === 'exercises' || a === 'feedback')) || (t === 'feed' && a === 'badges' && !!b));
   });
   nav.querySelector('a[data-tab="#/"] span:last-child').textContent = active() ? 'Workout' : 'Train';
   window.scrollTo(0, 0);
@@ -44,6 +45,8 @@ async function route() {
       case 'routine': return await renderRoutine(page, b);
       case 'history': return b ? await renderWorkoutDetail(page, b) : await renderHistory(page);
       case 'exercise': return await renderExercise(page, b);
+      case 'exercises': return renderExercises(page);
+      case 'feedback': return b ? await renderPost(page, b) : await renderFeedback(page);
       case 'feed': return await renderFeed(page, 'feed');
       case 'friends': return await renderFeed(page, 'friends');
       case 'friend': return await renderFriend(page, b);
@@ -142,8 +145,10 @@ function renderMe(root) {
       h('div', { class: 'seg', role: 'group', 'aria-label': 'Units' },
         h('button', { class: getUnits() === 'metric' ? 'on' : '', 'aria-pressed': String(getUnits() === 'metric'), onclick: () => setUnitsTo('metric') }, 'kg / cm'),
         h('button', { class: getUnits() === 'imperial' ? 'on' : '', 'aria-pressed': String(getUnits() === 'imperial'), onclick: () => setUnitsTo('imperial') }, 'lb / in'))),
-    h('section', { class: 'card' },
-      h('a', { class: 'row between', href: '#/history' }, h('span', {}, 'Workout history'), h('span', { class: 'muted' }, '›'))),
+    h('section', { class: 'card list-card' },
+      h('a', { class: 'row between', href: '#/history' }, h('span', {}, 'Workout history'), h('span', { class: 'muted' }, '›')),
+      h('a', { class: 'row between', href: '#/exercises' }, h('span', {}, 'Exercises'), h('span', { class: 'muted' }, '›')),
+      h('a', { class: 'row between', href: '#/feedback' }, h('span', {}, 'Feature requests & bug reports'), h('span', { class: 'muted' }, '›'))),
     h('section', { class: 'card' },
       h('strong', {}, 'Sync'),
       h('p', { class: 'muted small' }, pending ? `${pending} change${pending > 1 ? 's' : ''} waiting to upload. They’ll send automatically when you’re online.` : 'Everything is saved to the server.'),

@@ -271,3 +271,37 @@ input.short { flex: 0 0 5rem; }
 .uni-switch { align-items: flex-start; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; margin: 4px 0 8px; }
 .uni-switch input { margin-top: 2px; }
 .link.small { font-size: .85rem; width: auto; padding: 6px; }
+
+/* custom avatar art */
+.avatar.art svg { width: 100%; height: 100%; display: block; }
+.icon-pick.art { padding: 0; display: flex; align-items: center; justify-content: center; height: 52px; }
+.pick-head { font-size: .85rem; color: var(--muted); margin: 14px 0 6px; font-weight: 600; }
+.icon-grid { grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); }
+.list-card a + a { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 10px; }
+.small-switch { margin-top: 8px; font-size: .85rem; }
+.small-switch input { width: 20px; height: 20px; }
+.exercise-form .chips { margin-top: 2px; }
+
+/* feedback board */
+.fb-filters { flex-wrap: wrap; margin: 8px 0 12px; }
+.fb-filters .seg { flex: 1; min-width: 140px; margin-top: 0; }
+.fb-card { display: flex; gap: 12px; align-items: flex-start; }
+.fb-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.fb-title { overflow-wrap: anywhere; }
+.vote { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; width: 48px; min-height: 52px;
+  border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); color: var(--muted); font: inherit; cursor: pointer; }
+.vote strong { color: var(--text); }
+.vote.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .75rem; font-weight: 600; background: var(--surface-2); color: var(--text); }
+.st-open { background: var(--surface-2); }
+.st-planned { background: color-mix(in srgb, #7c3aed 18%, var(--surface)); }
+.st-progress { background: color-mix(in srgb, #e8590c 20%, var(--surface)); }
+.st-done { background: color-mix(in srgb, var(--good) 22%, var(--surface)); }
+.st-wont { background: color-mix(in srgb, var(--muted) 22%, var(--surface)); }
+.fb-head { display: flex; gap: 12px; align-items: flex-start; }
+.fb-head h1 { margin: 0; overflow-wrap: anywhere; }
+.fb-body, .fb-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.fb-text { margin: 6px 0 0; }
+.fb-reply { display: flex; gap: 8px; align-items: flex-end; margin-top: 8px; }
+.fb-reply textarea { flex: 1; }

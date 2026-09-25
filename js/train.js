@@ -1,10 +1,10 @@
 // Train home, routine editor, history, and per-exercise history.
 import * as api from './api.js';
 import { state, exName, loadRoutines, saveRoutine } from './store.js';
-import { active, startWorkout, pickExercise, editDetails, detailsSummary } from './workout.js';
-import { details } from './store.js';
+import { active, startWorkout, pickExercise, editDetails, detailsSummary, exerciseForm, newExerciseSheet } from './workout.js';
+import { details, setUnilateral, updateExercise, deleteExercise, CATEGORIES } from './store.js';
 import { avatar } from './avatar.js';
-import { h, mount, toast, confirmSheet, fmtW, fmtDate, fmtDay, duration, ago, spinner, lineChart, e1rm, toW, wUnit } from './ui.js';
+import { h, mount, toast, sheet, confirmSheet, fmtW, fmtDate, fmtDay, duration, ago, spinner, lineChart, e1rm, toW, wUnit } from './ui.js';
 
 // ---------- Train home ---------------------------------------------------
 export async function renderTrain(root) {
@@ -99,6 +99,8 @@ export async function renderRoutine(root, id) {
   if (id !== 'new' && !existing) { mount(root, h('p', { class: 'muted' }, 'Routine not found.'), h('a', { class: 'btn', href: '#/' }, 'Back')); return; }
   const r = existing ? JSON.parse(JSON.stringify(existing)) : { id: api.uuid(), name: '', items: [] };
   const list = h('div', {});
+  const uni = new Map();   // exercise id -> left/right setting (per exercise, shared everywhere)
+  const loadUni = ids => Promise.all(ids.filter(x => !uni.has(x)).map(async x => uni.set(x, !!(await details(x).catch(() => null))?.unilateral)));
   const draw = () => mount(list, r.items.map((it, i) => h('div', { class: 'card routine-item' },
     h('div', { class: 'row between' }, h('strong', {}, exName(it.exercise_id)),
       h('div', { class: 'row' },
@@ -108,16 +110,22 @@ export async function renderRoutine(root, id) {
     h('div', { class: 'row gap' },
       num('Sets', it.sets, v => (it.sets = v || 1)),
       num('Reps', it.reps, v => (it.reps = v || null)),
-      num('Rest (s)', it.rest, v => (it.rest = v || 90), 15)))),
+      num('Rest (s)', it.rest, v => (it.rest = v || 90), 15)),
+    h('label', { class: 'switch small-switch' },
+      h('input', { type: 'checkbox', checked: !!uni.get(it.exercise_id), onchange: e => {
+        uni.set(it.exercise_id, e.target.checked); setUnilateral(it.exercise_id, e.target.checked);
+        toast(e.target.checked ? 'Left & right on for this exercise' : 'Left & right off'); } }),
+      h('span', {}, 'Left & right (unilateral)')))),
     !r.items.length && h('p', { class: 'muted center' }, 'No exercises yet.'));
   draw();
+  loadUni(r.items.map(i => i.exercise_id)).then(draw);
   mount(root,
     h('a', { class: 'back', href: '#/' }, '‹ Back'),
     h('h1', {}, existing ? 'Edit routine' : 'New routine'),
     h('label', { class: 'field' }, h('span', {}, 'Name'),
       h('input', { value: r.name, placeholder: 'e.g. Push day', oninput: e => (r.name = e.target.value), 'data-noautofocus': '1' })),
     list,
-    h('button', { class: 'btn block', onclick: () => pickExercise(ex => { r.items.push({ exercise_id: ex.id, sets: 3, reps: 10, rest: 90 }); draw(); }) }, '＋ Add exercise'),
+    h('button', { class: 'btn block', onclick: () => pickExercise(async ex => { r.items.push({ exercise_id: ex.id, sets: 3, reps: 10, rest: 90 }); draw(); await loadUni([ex.id]); draw(); }) }, '＋ Add exercise'),
     h('button', { class: 'btn primary block', onclick: () => {
       if (!r.name.trim()) return toast('Give the routine a name', 'err');
       saveRoutine({ id: r.id, name: r.name.trim(), items: r.items }); toast('Routine saved'); location.hash = '#/'; } }, 'Save routine'),
@@ -148,9 +156,34 @@ export async function renderExercise(root, id) {
   const bestSet = sets.reduce((b, s) => (!b || (e1rm(s.weight_kg, s.reps) || 0) > (e1rm(b.weight_kg, b.reps) || 0) ? s : b), null);
   const heaviest = sets.reduce((b, s) => (!b || +s.weight_kg > +b.weight_kg ? s : b), null);
   const summary = detailsSummary(d);
+  const ex = state.exById.get(id);
+  const mine = ex?.owner === uid;
+  const edit = () => sheet('Edit exercise', close => exerciseForm({ id, name: ex.name, category: ex.category, unilateral: !!d?.unilateral }, f => {
+    updateExercise(id, { name: f.name, category: f.category });
+    if (f.unilateral !== !!d?.unilateral) setUnilateral(id, f.unilateral);
+    toast('Saved'); close(); renderExercise(root, id);
+  }));
+  const remove = async () => {
+    const n = sets.length;
+    if (!(await confirmSheet(`Delete “${ex.name}”?`, n ? `This also deletes the ${n} set${n > 1 ? 's' : ''} you’ve logged for it. This can’t be undone.` : 'It will be removed from your exercise list and any routines.'))) return;
+    try {
+      await deleteExercise(id);
+      for (const r of state.routines.filter(r => (r.items || []).some(i => i.exercise_id === id)))
+        saveRoutine({ ...r, items: r.items.filter(i => i.exercise_id !== id) });
+      toast('Exercise deleted'); location.hash = '#/exercises';
+    } catch (e) { toast(e.message, 'err'); }
+  };
   mount(root,
     h('a', { class: 'back', href: 'javascript:history.back()' }, '‹ Back'),
     h('h1', {}, exName(id)),
+    ex && h('p', { class: 'muted small' }, `${ex.category}${mine ? ' · your exercise' : ' · built-in'}`),
+    h('section', { class: 'card' },
+      h('label', { class: 'switch' },
+        h('input', { type: 'checkbox', checked: !!d?.unilateral, onchange: e => { setUnilateral(id, e.target.checked); toast(e.target.checked ? 'Left & right on' : 'Left & right off'); } }),
+        h('span', {}, h('strong', {}, 'Unilateral (left & right)'), h('br'), h('span', { class: 'muted small' }, 'Log each side separately, everywhere this exercise is used')))),
+    mine && h('div', { class: 'row gap' },
+      h('button', { class: 'btn small', onclick: edit }, 'Rename / change area'),
+      h('button', { class: 'btn small danger ghost', onclick: remove }, 'Delete exercise')),
     h('section', { class: 'card' },
       h('div', { class: 'row between' }, h('strong', {}, 'My settings'),
         h('button', { class: 'btn small', onclick: () => editDetails(id, () => renderExercise(root, id)) }, 'Edit')),
@@ -168,3 +201,33 @@ export async function renderExercise(root, id) {
       : h('p', { class: 'muted' }, 'You haven’t logged this exercise yet.'));
 }
 export const stat = (label, value) => h('div', { class: 'stat' }, h('span', { class: 'muted small' }, label), h('strong', {}, value));
+
+// ---------- Exercise library (Me → Exercises) -------------------------------
+export function renderExercises(root) {
+  const me = api.userId();
+  let q = '', cat = '';
+  const list = h('div', { class: 'list' });
+  const draw = () => {
+    const ql = q.trim().toLowerCase();
+    const match = x => (x.owner == null || x.owner === me) && (!cat || x.category === cat) && (!ql || x.name.toLowerCase().includes(ql));
+    const mine = state.exercises.filter(x => x.owner === me && match(x));
+    const built = state.exercises.filter(x => x.owner == null && match(x));
+    const row = x => h('a', { class: 'list-item', href: '#/exercise/' + x.id }, h('span', {}, x.name), h('span', { class: 'muted small' }, x.category + ' ›'));
+    mount(list,
+      h('h2', {}, `Your exercises (${mine.length})`),
+      mine.length ? mine.map(row) : h('p', { class: 'muted small' }, ql || cat ? 'None match.' : 'None yet — create one with the button above.'),
+      h('h2', {}, `Built-in (${built.length})`),
+      built.map(row));
+  };
+  const chips = h('div', { class: 'chips scroll' }, ['', ...CATEGORIES].map(c =>
+    h('button', { class: 'chip' + (c === cat ? ' on' : ''), onclick: e => {
+      cat = c; chips.querySelectorAll('.chip').forEach(b => b.classList.remove('on')); e.currentTarget.classList.add('on'); draw(); } }, c || 'All')));
+  draw();
+  mount(root,
+    h('a', { class: 'back', href: '#/me' }, '‹ Me'),
+    h('div', { class: 'section-head' }, h('h1', {}, 'Exercises'),
+      h('button', { class: 'btn primary small', onclick: () => newExerciseSheet(ex => { location.hash = '#/exercise/' + ex.id; }) }, '＋ New')),
+    h('p', { class: 'muted small' }, 'Tap an exercise to set left & right, machine settings, or see your history.'),
+    h('input', { type: 'search', placeholder: 'Search exercises', 'aria-label': 'Search exercises', oninput: e => { q = e.target.value; draw(); } }),
+    chips, list);
+}

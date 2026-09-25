@@ -1,6 +1,6 @@
 // Active workout logging, exercise picker, exercise details and the rest timer.
 import * as api from './api.js';
-import { state, exName, addExercise, lastSets, details, saveDetails, saveRoutine, CATEGORIES } from './store.js';
+import { state, exName, addExercise, lastSets, details, saveDetails, saveRoutine, setUnilateral, CATEGORIES } from './store.js';
 import { checkBadges } from './badges.js';
 import { h, mount, toast, sheet, confirmSheet, fmtW, toW, fromW, wUnit, clock, duration, currentPage } from './ui.js';
 
@@ -165,9 +165,7 @@ export function pickExercise(onPick) {
     };
     const createFlow = name => {
       chips.hidden = true;
-      mount(list, h('p', {}, `Which body area is “${name}”?`),
-        h('div', { class: 'chips' }, CATEGORIES.map(c => h('button', { class: 'chip', onclick: () => {
-          const ex = addExercise(name, c); toast('Exercise created'); close(); onPick(ex); } }, c))));
+      mount(list, exerciseForm({ name }, f => { const ex = createExercise(f); close(); onPick(ex); }, 'Create & add'));
     };
     const chips = h('div', { class: 'chips scroll' }, ['', ...CATEGORIES].map(c =>
       h('button', { class: 'chip' + (c === cat ? ' on' : ''), onclick: e => {
@@ -178,6 +176,45 @@ export function pickExercise(onPick) {
         oninput: e => { q = e.target.value; chips.hidden = false; draw(); } }),
       chips, list);
   });
+}
+
+// ---------- create / edit an exercise ------------------------------------
+/** Form for an exercise's name, body area and left/right. Calls onSubmit({name, category, unilateral}). */
+export function exerciseForm(init, onSubmit, submitLabel = 'Save') {
+  const f = { name: init.name || '', category: init.category || '', unilateral: !!init.unilateral };
+  const err = h('p', { class: 'error', role: 'alert' });
+  const chips = h('div', { class: 'chips', role: 'radiogroup', 'aria-label': 'Body area' });
+  const drawChips = () => mount(chips, CATEGORIES.map(c => h('button', { type: 'button', class: 'chip' + (c === f.category ? ' on' : ''), role: 'radio',
+    'aria-checked': String(c === f.category), onclick: () => { f.category = c; drawChips(); } }, c)));
+  drawChips();
+  return h('form', { class: 'exercise-form', onsubmit: e => {
+    e.preventDefault();
+    const name = f.name.trim();
+    if (!name) return (err.textContent = 'Give it a name');
+    if (!f.category) return (err.textContent = 'Pick a body area');
+    const clash = state.exercises.find(x => x.id !== init.id && (x.owner == null || x.owner === api.userId()) && x.name.toLowerCase() === name.toLowerCase());
+    if (clash) return (err.textContent = `You already have “${clash.name}”`);
+    onSubmit({ ...f, name: name.slice(0, 80) });
+  } },
+    h('label', { class: 'field' }, h('span', {}, 'Name'),
+      h('input', { value: f.name, maxlength: 80, placeholder: 'e.g. Single-leg Press', 'data-noautofocus': init.name ? '1' : null, oninput: e => (f.name = e.target.value) })),
+    h('div', { class: 'field' }, h('span', {}, 'Body area'), chips),
+    h('label', { class: 'switch uni-switch' },
+      h('input', { type: 'checkbox', checked: f.unilateral, onchange: e => (f.unilateral = e.target.checked) }),
+      h('span', {}, h('strong', {}, 'Unilateral (left & right)'), h('br'), h('span', { class: 'muted small' }, 'Log each side separately'))),
+    err,
+    h('button', { class: 'btn primary block', type: 'submit' }, submitLabel));
+}
+
+export function createExercise(f) {
+  const ex = addExercise(f.name, f.category);
+  if (f.unilateral) setUnilateral(ex.id, true);
+  toast('Exercise created');
+  return ex;
+}
+
+export function newExerciseSheet(onCreated) {
+  sheet('New exercise', close => exerciseForm({}, f => { const ex = createExercise(f); close(); onCreated?.(ex); }, 'Create exercise'));
 }
 
 // ---------- exercise details (seat height, machine, adjustments) ----------
