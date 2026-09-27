@@ -16,7 +16,7 @@ export const TOPICS = [
   { id: 'tabs', section: 'Getting started', title: 'Finding your way around', keywords: 'tabs menu navigation bottom bar',
     body: ['The bar at the bottom has five tabs:',
       { steps: ['Home: your dashboard — streak, activity grid, this week, trends, records, badges and bodyweight (tap it for all body stats).', 'Train: start workouts, your routines and recent workouts.', 'Friends: your friends’ workouts and badges, and friend requests.', 'Ranks: leaderboards for you and your friends.', 'Me: your profile, avatar, badges, exercises, settings, backup and feedback.'] },
-      { tip: 'The ? button at the top opens help for the screen you’re on.' }] },
+      { tip: 'The help button (the circled question mark) at the top opens help for the screen you’re on. Tap the logo to jump back to Home.' }] },
   { id: 'offline', section: 'Getting started', title: 'Using it with no signal', keywords: 'offline internet wifi signal sync upload gym basement',
     body: ['You can log a whole workout with no signal. Everything is saved on your phone and uploads automatically when you’re back online.',
       'While changes are waiting, the top bar shows “Offline · N to sync”. Me → Sync shows the same and has a “Try now” button.',
@@ -25,7 +25,8 @@ export const TOPICS = [
 
   { id: 'dashboard', section: 'Getting started', title: 'Your Home dashboard', keywords: 'home dashboard stats streak this week trends volume records pr body areas', screens: [''],
     body: ['Home is your dashboard. From top to bottom:',
-      { steps: ['Streak — how many weeks in a row you’ve trained.', 'Activity — a grid of every day (see “The activity grid”).', 'This week — workouts, sets, volume and time, compared with the same point last week.', 'Trends — your weekly volume for the last 12 weeks (tap a column for its value), and which body areas you trained in the last 30 days.', 'Recent personal records — sets that beat your previous best estimated 1-rep max.', 'Badges — your latest ones and progress to the next workout milestone.', 'Body — your latest bodyweight with a mini trend. Tap it, or “All body stats”, to open Body.'] }] },
+      { steps: ['Streak — the ring fills as you work towards your usual number of sessions for the week (your average over the last 8 weeks, at least 2). The number in the middle is how many weeks in a row you’ve trained.', 'Activity — a grid of every day (see “The activity grid”).', 'This week — workouts, sets, volume and time, compared with the same point last week.', 'Trends — your weekly volume for the last 12 weeks (tap a column for its value), and which body areas you trained in the last 30 days.', 'Recent personal records — sets that beat your previous best estimated 1-rep max.', 'Badges — your latest ones and progress to the next workout milestone.', 'Body — your latest bodyweight with a mini trend. Tap it, or “All body stats”, to open Body.'] },
+      { tip: 'The floating “Start workout” button takes you straight to Train. While a workout is running, a dark “Workout in progress” card takes its place.' }] },
   { id: 'activity-grid', section: 'Getting started', title: 'The activity grid', keywords: 'activity grid heatmap calendar days github squares consistency', screens: [],
     body: ['The grid shows the last year, one square per day (Monday at the top), with the newest week on the right — swipe sideways to see earlier months.',
       'Darker squares mean more sets that day. The shades are based on your own training, so they adapt as you get busier.',
@@ -34,22 +35,22 @@ export const TOPICS = [
 
   // ---------- Workouts ----------
   { id: 'start-workout', section: 'Workouts', title: 'Start a workout', keywords: 'begin train empty session', screens: ['train'],
-    body: [{ steps: ['Go to Train (or tap “Start a workout” on Home).', 'Tap “Start” next to a routine — its exercises are filled in for you — or “Start empty workout” to add exercises as you go.', 'Use “＋ Add exercise” to add more. Search, filter by body area, or type a new name to create one.'] },
+    body: [{ steps: ['Go to Train (or tap the floating “Start workout” button on Home).', 'Tap “Start” next to a routine — its exercises are filled in for you — or “Start empty workout” to add exercises as you go.', 'Use “+ Add exercise” to add more. Search, filter by body area, or type a new name to create one.'] },
       'If you leave the app mid-workout, the Train tab changes to “Workout” and a “Resume” card takes you back.'] },
   { id: 'log-sets', section: 'Workouts', title: 'Log sets (and “Last” numbers)', keywords: 'set reps weight tick log previous last time prefill', screens: ['workout'],
-    body: ['Each exercise has a row per set: weight, reps and a ✓ button.',
-      { steps: ['Check the weight and reps (they’re pre-filled from last time).', 'Tap ✓ to log the set — it turns green and the rest timer starts.', 'Tap ✓ again to un-log it.'] },
+    body: ['The big clock at the top shows how long you’ve been training, with a line underneath counting exercises done and sets logged.', 'Each exercise has a row per set: weight, reps and a tick button.',
+      { steps: ['Check the weight and reps (they’re pre-filled from last time).', 'Tap the tick to log the set — the row fills with your colour, your phone gives a little buzz and the rest timer starts.', 'Tap the tick again to un-log it.'] },
       'The “Last” column shows what you did for that set the previous time.',
-      '“＋ Add set” and “Remove last set” sit under each exercise. The ⋯ menu lets you change the rest time, move the exercise up or down, or remove it.'] },
+      'Tap the grey settings chip under an exercise’s name to add machine and seat settings.', '“+ Add set” and “Remove last set” sit under each exercise. The ••• menu lets you change the rest time, move the exercise up or down, or remove it.'] },
   { id: 'rest-timer', section: 'Workouts', title: 'Rest timer', keywords: 'rest timer countdown beep vibrate', screens: ['workout'],
-    body: ['The timer starts when you tick a set. Use −15 / +15 to adjust it, or Skip to stop it. It beeps and vibrates when time’s up.',
-      'Change an exercise’s rest time from its ⋯ menu, or set it in the routine.',
+    body: ['The timer starts when you tick a set and floats above the tab bar. Use −15 / +15 to adjust it, or Skip to stop it. It beeps and vibrates when time’s up.',
+      'Change an exercise’s rest time from its ••• menu, or set it in the routine.',
       { tip: 'Phones pause web apps when the screen is locked, so the beep may not play then — the countdown is still correct when you come back.' }] },
   { id: 'finish-workout', section: 'Workouts', title: 'Finish or discard a workout', keywords: 'finish end save discard cancel', screens: ['workout'],
-    body: ['Tap Finish at the top. You can then:', { steps: ['Update the routine you started from with today’s exercises, or', 'Save the workout as a new routine.'] },
+    body: ['Tap Finish at the top. You’ll get a little celebration, then you can:', { steps: ['Update the routine you started from with today’s exercises, or', 'Save the workout as a new routine.'] },
       '“Discard workout” at the bottom deletes everything logged in it.'] },
   { id: 'routines', section: 'Workouts', title: 'Create and edit routines', keywords: 'routine template plan push pull legs day', screens: ['routine'],
-    body: [{ steps: ['On Train, tap “＋ New” next to Routines.', 'Name it (e.g. “Push day”) and add exercises.', 'Set sets, reps and rest for each; use ↑ ↓ to reorder.', 'Tap “Save routine”.'] },
+    body: [{ steps: ['On Train, tap “+ New” next to Routines.', 'Name it (e.g. “Push day”) and add exercises.', 'Set sets, reps and rest for each; use ↑ ↓ to reorder.', 'Tap “Save routine”.'] },
       'Each exercise also has a “Left & right” switch — see “Left & right exercises”.',
       'Tap a routine’s name to edit or delete it. Past workouts are kept if you delete a routine.'] },
   { id: 'history', section: 'Workouts', title: 'Workout history', keywords: 'history past previous workouts delete', screens: ['history'],
@@ -58,13 +59,13 @@ export const TOPICS = [
   // ---------- Exercises ----------
   { id: 'exercise-library', section: 'Exercises', title: 'Your exercise library', keywords: 'exercise create new custom rename delete library', screens: ['exercises'],
     body: ['Me → Exercises lists your own exercises and the built-in ones. Search or filter by body area.',
-      { steps: ['Tap “＋ New” to create an exercise: give it a name, a body area and, if needed, switch on Left & right.', 'Tap any exercise to open its page.'] },
+      { steps: ['Tap “+ New” to create an exercise: give it a name, a body area and, if needed, switch on Left & right.', 'Tap any exercise to open its page.'] },
       'On your own exercises you can rename them, change the body area, or delete them. Deleting also deletes the sets you logged for it (you’ll be warned). Built-in exercises can’t be renamed or deleted.'] },
   { id: 'exercise-page', section: 'Exercises', title: 'An exercise’s page and progress', keywords: 'progress chart e1rm best heaviest sessions', screens: ['exercise'],
     body: ['Each exercise’s page shows your best estimated 1-rep max, heaviest set, a progress chart and every session. Tap or drag on the chart to see values.',
       'Estimated 1-rep max uses the Epley formula and only counts sets of 12 reps or fewer.'] },
   { id: 'left-right', section: 'Exercises', title: 'Left & right (unilateral) exercises', keywords: 'unilateral left right side single arm leg L R', screens: ['exercise', 'workout', 'routine'],
-    body: ['For one-arm or one-leg exercises, switch on “Unilateral (left & right)”. Each set then has an L row and an R row, each with its own ✓ (and each starts the rest timer).',
+    body: ['For one-arm or one-leg exercises, switch on “Unilateral (left & right)”. Each set then has an L row and an R row, each with its own tick (and each starts the rest timer).',
       'You can switch it on:', { steps: ['when creating the exercise,', 'on the exercise’s page,', 'under the exercise in the routine editor, or', 'in the exercise’s machine settings during a workout.'] },
       'The setting belongs to the exercise, so it applies everywhere you use it. “Last” numbers and pre-filled values are kept per side.',
       { tip: 'If you switch it mid-workout after logging sets, it applies the next time you add that exercise.' }] },
@@ -102,8 +103,8 @@ export const TOPICS = [
   // ---------- Settings ----------
   { id: 'avatar', section: 'Your settings', title: 'Change your avatar', keywords: 'avatar picture icon profile colour',
     body: ['On Me, tap your picture. Pick one of the drawings (animals, athletes, creatures, emblems) or an emoji, choose a background colour, and tap Save. Friends see it next to your name.'] },
-  { id: 'appearance', section: 'Your settings', title: 'Colours, dark mode & units', keywords: 'theme dark light mode colour accent units kg lb',
-    body: ['Me → Appearance: choose Auto (follows your phone), Light or Dark, and an accent colour — or any colour with the rainbow circle. Colours are adjusted automatically to stay readable, and are saved on this device.',
+  { id: 'appearance', section: 'Your settings', title: 'Colours, dark mode & units', keywords: 'theme dark light mode colour accent units kg lb sage ocean plum clay rose ochre forest slate',
+    body: ['Me → Appearance: choose Auto (follows your phone), Light or Dark.', 'Under “Colour theme”, pick Sage (the default), Ocean, Plum, Clay, Rose, Ochre, Forest or Slate — or any colour with the rainbow circle. Buttons, ticks, charts, the activity grid and the logo all follow your choice. Colours are adjusted automatically to stay readable in light and dark mode, and are saved on this device.',
       'Me → Units switches between kg/cm and lb/in. Everyone sees everyone’s numbers in their own units.'] },
   { id: 'account', section: 'Your settings', title: 'Username, password & signing out', keywords: 'username rename password sign out log out account',
     body: ['On Me you can rename your username, change your password, and sign out (at the bottom).',
@@ -122,7 +123,7 @@ export const TOPICS = [
   // ---------- Feedback ----------
   { id: 'feedback', section: 'Feedback', title: 'Request a feature or report a bug', keywords: 'feedback feature request bug report idea vote comment', screens: ['feedback'],
     body: ['Me → Feature requests & bug reports is a board everyone using the app can see.',
-      { steps: ['Tap “＋ New post”, pick Feature request or Bug report, add a title and details.', 'Upvote posts you agree with (▲) and add comments.', 'Filter by type, sort by Top or New, and show Active or Closed posts.'] },
+      { steps: ['Tap “+ New post”, pick Feature request or Bug report, add a title and details.', 'Upvote posts you agree with (▲) and add comments.', 'Filter by type, sort by Top or New, and show Active or Closed posts.'] },
       'Bug reports include your app version and device type automatically. The app owner sets each post’s status: Open, Planned, In progress, Done or Won’t do.'] },
 
   // ---------- Troubleshooting ----------
@@ -134,6 +135,12 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '2.0.0', date: '2026-09-27', items: [
+    'A brand-new look: calmer colours, a new font, soft floating cards and a floating tab bar, with its own icon set and a new app icon and logo.',
+    'Dark mode and eight colour themes (Sage, Ocean, Plum, Clay, Rose, Ochre, Forest, Slate), or any colour you like — under Me → Appearance.',
+    'Home greets you and shows your streak as a ring that fills towards your usual sessions for the week. “Start workout” now floats at the bottom.',
+    'Workouts have a big live clock, a progress line, machine-settings chips, a satisfying tick (with a buzz on Android) and a floating rest timer.',
+    'Friends’ posts show time, sets and volume at a glance, and a little celebration plays when you finish a workout or earn a badge.'] },
   { version: '1.5.0', date: '2026-09-27', items: [
     'New Home dashboard: your streak, a GitHub-style activity grid, this week vs last week, weekly volume, body areas trained, recent personal records, badges and bodyweight.',
     'Tap any day in the activity grid to see what you did.',

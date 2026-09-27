@@ -2,7 +2,7 @@
 import * as api from './api.js';
 import { state } from './store.js';
 import { TOPICS, SECTIONS, CHANGELOG, topicForScreen } from './guide.js';
-import { h, mount, sheet, fmtDay } from './ui.js';
+import { h, mount, sheet, fmtDay, ic, chev } from './ui.js';
 
 const block = b => typeof b === 'string' ? h('p', {}, b)
   : b.steps ? h('ol', { class: 'guide-steps' }, b.steps.map(s => h('li', {}, s)))
@@ -23,12 +23,12 @@ export function renderHelp(root, id) {
   if (t) {
     const related = TOPICS.filter(x => x.section === t.section && x.id !== t.id);
     mount(root,
-      h('a', { class: 'back', href: '#/help' }, '‹ All help'),
+      h('a', { class: 'back', href: '#/help' }, ic('back', 18), 'All help'),
       h('p', { class: 'muted small' }, t.section),
       h('h1', {}, t.title),
       h('div', { class: 'guide-body' }, t.body.map(block)),
       related.length > 0 && [h('h2', {}, 'More on ' + t.section.toLowerCase()),
-        h('div', { class: 'card list-card' }, related.map(r => h('a', { class: 'row between', href: '#/help/' + r.id }, h('span', {}, r.title), h('span', { class: 'muted' }, '›'))))]);
+        h('div', { class: 'card list-card' }, related.map(r => h('a', { class: 'row between', href: '#/help/' + r.id }, h('span', {}, r.title), chev())))]);
     return;
   }
   const list = h('div', {});
@@ -41,17 +41,17 @@ export function renderHelp(root, id) {
       const hits = TOPICS.filter(t => words.every(w => text(t).includes(w))).sort((a, b) => score(b) - score(a));
       mount(list, hits.length
         ? h('div', { class: 'card list-card' }, hits.map(t => h('a', { class: 'row between', href: '#/help/' + t.id },
-            h('span', {}, t.title, h('br'), h('span', { class: 'muted small' }, t.section)), h('span', { class: 'muted' }, '›'))))
+            h('span', {}, t.title, h('br'), h('span', { class: 'muted small' }, t.section)), chev())))
         : h('p', { class: 'muted' }, 'No matches. Try another word, or ask on the feedback board (Me → Feature requests & bug reports).'));
       return;
     }
     mount(list,
       h('a', { class: 'card row between whats-new-link', href: '#/help/whats-new' },
-        h('span', {}, h('strong', {}, '✨ What’s new'), h('br'), h('span', { class: 'muted small' }, `You’re on v${window.APP_VERSION}`)), h('span', { class: 'muted' }, '›')),
+        h('span', {}, h('strong', {}, '✨ What’s new'), h('br'), h('span', { class: 'muted small' }, `You’re on v${window.APP_VERSION}`)), chev()),
       SECTIONS.map(s => {
         const ts = TOPICS.filter(t => t.section === s);
         return ts.length ? [h('h2', {}, s), h('div', { class: 'card list-card' },
-          ts.map(t => h('a', { class: 'row between', href: '#/help/' + t.id }, h('span', {}, t.title), h('span', { class: 'muted' }, '›'))))] : null;
+          ts.map(t => h('a', { class: 'row between', href: '#/help/' + t.id }, h('span', {}, t.title), chev())))] : null;
       }));
   };
   draw('');
@@ -63,7 +63,7 @@ export function renderHelp(root, id) {
 
 function renderChangelog(root) {
   mount(root,
-    h('a', { class: 'back', href: '#/help' }, '‹ All help'),
+    h('a', { class: 'back', href: '#/help' }, ic('back', 18), 'All help'),
     h('h1', {}, 'What’s new'),
     CHANGELOG.map(c => h('section', { class: 'card' },
       h('div', { class: 'row between' }, h('strong', {}, 'v' + c.version), h('span', { class: 'muted small' }, fmtDay(c.date + 'T12:00'))),

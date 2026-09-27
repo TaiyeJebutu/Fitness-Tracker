@@ -1,6 +1,6 @@
 import * as api from './api.js';
 import { state, loadProfile, loadExercises, loadFriends, loadRoutines } from './store.js';
-import { h, mount, toast, setUnits, getUnits } from './ui.js';
+import { h, mount, toast, setUnits, getUnits, ic, logoMark, chev } from './ui.js';
 import { renderWorkout, active, tickRest } from './workout.js';
 import { renderTrain, renderHistory, renderWorkoutDetail, renderRoutine, renderExercise, renderExercises } from './train.js';
 import { renderFeed, renderFriend, renderRanks } from './social.js';
@@ -16,12 +16,12 @@ const app = document.getElementById('app');
 const view = h('main', { id: 'view', tabindex: '-1' });
 const restbar = h('div', { id: 'restbar', class: 'restbar', hidden: true });
 const syncDot = h('span', { class: 'sync', title: '' });
-const helpBtn = h('button', { class: 'icon-btn help-btn', 'aria-label': 'Help for this screen', title: 'Help', onclick: () => { location.hash = helpHref(); } }, '?');
+const helpBtn = h('button', { class: 'icon-btn help-btn', 'aria-label': 'Help for this screen', title: 'Help', onclick: () => { location.hash = helpHref(); } }, ic('help', 21));
 const updateBar = h('button', { class: 'update-banner', hidden: true, onclick: applyUpdate });
 
-const NAV = [['#/', 'Home', '🏠'], ['#/train', 'Train', '🏋️'], ['#/feed', 'Friends', '👥'], ['#/ranks', 'Ranks', '🏆'], ['#/me', 'Me', '⚙️']];
+const NAV = [['#/', 'Home', 'home'], ['#/train', 'Train', 'train'], ['#/feed', 'Friends', 'friends'], ['#/ranks', 'Ranks', 'ranks'], ['#/me', 'Me', 'me']];
 const nav = h('nav', { class: 'tabbar', 'aria-label': 'Main' },
-  NAV.map(([href, label, icon]) => h('a', { href, 'data-tab': href }, h('span', { class: 'ico', 'aria-hidden': 'true' }, icon), h('span', {}, label))));
+  NAV.map(([href, label, icon]) => h('a', { href, 'data-tab': href }, h('span', { class: 'ico', 'aria-hidden': 'true' }, ic(icon, 24)), h('span', {}, label))));
 
 // ---------- router -------------------------------------------------------
 async function route() {
@@ -70,6 +70,7 @@ async function route() {
 // ---------- first-run: not configured -----------------------------------
 function renderSetupNeeded() {
   mount(app, h('main', { class: 'auth' },
+    h('div', { class: 'logo' }, logoMark(72)),
     h('h1', {}, 'Almost there'),
     h('p', {}, 'This app isn’t connected to a database yet. Open js/config.js and paste in your Supabase Project URL and publishable key — see the setup guide (README) step 3.')));
 }
@@ -101,8 +102,9 @@ function renderAuth(mode = 'in') {
   const input = (label, key, type, extra = {}) => h('label', { class: 'field' }, h('span', {}, label),
     h('input', { type, required: true, oninput: e => (f[key] = e.target.value), ...extra }));
   mount(app, h('main', { class: 'auth' },
-    h('div', { class: 'logo', 'aria-hidden': 'true' }, '🏋️'),
+    h('div', { class: 'logo' }, logoMark(72)),
     h('h1', {}, mode === 'up' ? 'Create your account' : mode === 'reset' ? 'Reset password' : 'Fitness Tracker'),
+    h('p', { class: 'tagline' }, mode === 'up' ? 'Free forever. Train with your friends.' : mode === 'reset' ? 'We’ll email you a link to set a new one.' : 'Train, track and keep each other going.'),
     h('form', { onsubmit: submit },
       mode === 'up' && input('Username (friends find you by this)', 'username', 'text', { autocapitalize: 'off', autocomplete: 'username', maxlength: 20 }),
       input('Email', 'email', 'email', { autocomplete: 'email', 'data-noautofocus': '1' }),
@@ -128,13 +130,13 @@ function renderMe(root) {
     h('br'), h('button', { class: 'link small', onclick: async e => {
       e.target.textContent = 'Checking…';
       const v = await checkUpdate();
-      e.target.textContent = v == null ? 'Couldn’t check (offline?)' : v === window.APP_VERSION ? '✓ You have the latest version' : `Version ${v} available — tap the banner above`;
+      e.target.textContent = v == null ? 'Couldn’t check (offline?)' : v === window.APP_VERSION ? 'You have the latest version' : `Version ${v} available — tap the banner above`;
     } }, 'Check for updates'));
   mount(root,
     h('h1', {}, 'Me'),
     h('section', { class: 'card' },
       h('div', { class: 'row gap me-head' },
-        h('button', { class: 'avatar-btn', 'aria-label': 'Change avatar', onclick: () => editAvatar(() => renderMe(root)) }, avatar(p, 56), h('span', { class: 'avatar-edit', 'aria-hidden': 'true' }, '✎')),
+        h('button', { class: 'avatar-btn', 'aria-label': 'Change avatar', onclick: () => editAvatar(() => renderMe(root)) }, avatar(p, 56), h('span', { class: 'avatar-edit', 'aria-hidden': 'true' }, ic('edit', 13))),
         h('p', {}, h('strong', {}, '@' + (p.username || '…')), h('br'), h('span', { class: 'muted small' }, api.session()?.user?.email || ''))),
       h('form', { class: 'row gap', onsubmit: async e => {
         e.preventDefault();
@@ -157,9 +159,8 @@ function renderMe(root) {
         h('button', { class: getUnits() === 'metric' ? 'on' : '', 'aria-pressed': String(getUnits() === 'metric'), onclick: () => setUnitsTo('metric') }, 'kg / cm'),
         h('button', { class: getUnits() === 'imperial' ? 'on' : '', 'aria-pressed': String(getUnits() === 'imperial'), onclick: () => setUnitsTo('imperial') }, 'lb / in'))),
     h('section', { class: 'card list-card' },
-      h('a', { class: 'row between', href: '#/history' }, h('span', {}, 'Workout history'), h('span', { class: 'muted' }, '›')),
-      h('a', { class: 'row between', href: '#/exercises' }, h('span', {}, 'Exercises'), h('span', { class: 'muted' }, '›')),
-      h('a', { class: 'row between', href: '#/feedback' }, h('span', {}, 'Feature requests & bug reports'), h('span', { class: 'muted' }, '›'))),
+      [['#/history', 'calendar', 'Workout history'], ['#/exercises', 'train', 'Exercises'], ['#/feedback', 'heart', 'Feature requests & bug reports'], ['#/help', 'help', 'Help & guide']].map(([href, i, label]) =>
+        h('a', { class: 'row gap', href }, h('span', { class: 'list-ico' }, ic(i, 18)), h('span', { class: 'grow' }, label), chev()))),
     h('section', { class: 'card' },
       h('strong', {}, 'Sync'),
       h('p', { class: 'muted small' }, pending ? `${pending} change${pending > 1 ? 's' : ''} waiting to upload. They’ll send automatically when you’re online.` : 'Everything is saved to the server.'),
@@ -185,7 +186,7 @@ function renderMe(root) {
       await api.signOut(); } }, 'Sign out'),
     versionLine);
   earnedBy(api.userId()).then(rows => mount(badgesCard,
-    h('a', { class: 'row between', href: '#/badges' }, h('strong', {}, `Badges · ${rows.length} of ${TOTAL}`), h('span', { class: 'muted' }, '›')),
+    h('a', { class: 'row gap', href: '#/badges' }, h('span', { class: 'list-ico accent' }, ic('medal', 18)), h('strong', { class: 'grow' }, 'Badges'), h('span', { class: 'muted small' }, `${rows.length} of ${TOTAL}`), chev()),
     badgeStrip(rows, 6)));
 }
 
@@ -193,7 +194,7 @@ function appearanceCard(root) {
   const t = window.FTTheme.load();
   const set = patch => { const n = { ...window.FTTheme.load(), ...patch }; window.FTTheme.save(n); window.FTTheme.apply(n); renderMe(root); };
   const mode = t.mode || 'auto';
-  const accent = window.FTTheme.valid(t.accent) ? t.accent.toLowerCase() : '#2f5fe0';
+  const accent = window.FTTheme.valid(t.accent) ? t.accent.toLowerCase() : '#2f6f5e';
   const isPreset = window.FTTheme.PRESETS.some(([, c]) => c === accent);
   return h('section', { class: 'card' },
     h('strong', {}, 'Appearance'),
@@ -201,6 +202,7 @@ function appearanceCard(root) {
       [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, l]) =>
         h('button', { class: mode === k ? 'on' : '', 'aria-pressed': String(mode === k), onclick: () => set({ mode: k }) }, l))),
     h('p', { class: 'muted small' }, 'Auto follows your phone’s setting. Colour choices are saved on this device.'),
+    h('div', { class: 'pick-head' }, 'Colour theme · ', h('span', { class: 'accent-name' }, (window.FTTheme.PRESETS.find(([, c]) => c === accent) || ['Custom'])[0])),
     h('div', { class: 'swatches', role: 'radiogroup', 'aria-label': 'Accent colour' },
       window.FTTheme.PRESETS.map(([name, c]) => h('button', { class: 'swatch' + (c === accent ? ' on' : ''), role: 'radio', 'aria-checked': String(c === accent),
         'aria-label': name, title: name, style: { background: c }, onclick: () => set({ accent: c }) })),
@@ -233,7 +235,7 @@ async function boot() {
 }
 
 function mountShell() {
-  mount(app, h('header', { class: 'topbar' }, h('span', { class: 'brand' }, 'Fitness Tracker'), h('span', { class: 'row gap' }, syncDot, helpBtn)), updateBar, restbar, view, nav);
+  mount(app, h('header', { class: 'topbar' }, h('a', { class: 'brand', href: '#/' }, logoMark(28), 'Fitness Tracker'), h('span', { class: 'row gap' }, syncDot, helpBtn)), updateBar, restbar, view, nav);
 }
 
 // ---------- updates ------------------------------------------------------
@@ -245,7 +247,7 @@ async function checkUpdate() {
   } catch { return null; }   // offline: try again later
   const newer = latest && latest !== window.APP_VERSION;
   updateBar.hidden = !newer;
-  if (newer) mount(updateBar, h('span', {}, `Version ${latest} is available`), h('span', {}, 'Tap to update ↻'));
+  if (newer) mount(updateBar, h('span', {}, `Version ${latest} is available`), h('span', { class: 'row gap' }, 'Update', ic('sync', 18)));
   return latest;
 }
 async function applyUpdate() {

@@ -1,8 +1,8 @@
 // Caches the app so it opens with no signal. Bump VERSION when you change files.
-const VERSION = 'v1.5.0';
+const VERSION = 'v2.0.0';
 const FILES = ['./', 'index.html', 'css/app.css', 'manifest.webmanifest',
-  'js/config.js', 'js/app.js', 'js/api.js', 'js/ui.js', 'js/store.js', 'js/workout.js', 'js/train.js', 'js/social.js', 'js/body.js', 'js/backup.js', 'js/theme.js', 'js/badges.js', 'js/avatar.js', 'js/avatar-art.js', 'js/feedback.js', 'js/guide.js', 'js/help.js', 'js/home.js', 'version.json',
-  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
+  'js/config.js', 'js/app.js', 'js/api.js', 'js/ui.js', 'js/store.js', 'js/workout.js', 'js/train.js', 'js/social.js', 'js/body.js', 'js/backup.js', 'js/theme.js', 'js/badges.js', 'js/avatar.js', 'js/avatar-art.js', 'js/feedback.js', 'js/guide.js', 'js/help.js', 'js/home.js', 'js/icons.js', 'version.json', 'fonts/manrope.woff',
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/logo.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

@@ -2,7 +2,7 @@
 import * as api from './api.js';
 import { state, exName, addExercise, lastSets, details, saveDetails, saveRoutine, setUnilateral, CATEGORIES } from './store.js';
 import { checkBadges } from './badges.js';
-import { h, mount, toast, sheet, confirmSheet, fmtW, toW, fromW, wUnit, clock, duration, currentPage } from './ui.js';
+import { h, mount, toast, sheet, confirmSheet, fmtW, toW, fromW, wUnit, clock, duration, currentPage, ic, haptic, confetti } from './ui.js';
 
 const AKEY = 'ft.active';
 export const active = () => api.LS.get(AKEY);
@@ -88,8 +88,10 @@ async function finish(w) {
     reps: it.targetReps || it.sets.find(s => s.done)?.reps || null, rest: it.rest }));
   const routine = state.routines.find(r => r.id === w.routine_id);
   location.hash = '#/history/' + w.id;  // switch screen first, then show the pop-up on top
-  sheet('Workout saved 💪', close => h('div', {},
-    h('p', {}, `${logged} sets · ${duration(w.started_at, ended)}`),
+  confetti();
+  sheet('Workout saved', close => h('div', {},
+    h('div', { class: 'saved-hero' }, h('span', { class: 'saved-ico' }, ic('check', 30)),
+      h('p', {}, h('strong', {}, `${logged} set${logged === 1 ? '' : 's'}`), ' · ', duration(w.started_at, ended))),
     routine && h('button', { class: 'btn block', onclick: () => { saveRoutine({ ...routine, items: asRoutineItems }); toast('Routine updated'); close(); } },
       `Update “${routine.name}” with today's exercises`),
     h('button', { class: 'btn block', onclick: () => {
@@ -141,8 +143,8 @@ export function tickRest() {
   bar.hidden = false;
   mount(bar,
     h('div', { class: 'rest-fill', style: { width: Math.max(0, Math.min(100, (left / r.total) * 100)) + '%' } }),
+    h('div', { class: 'rest-time' }, ic('timer', 22), h('span', {}, left > 0 ? clock(left) : 'Go!'), h('span', { class: 'rest-label' }, 'Rest')),
     h('button', { class: 'icon-btn', onclick: () => adjustRest(-15), 'aria-label': 'Minus 15 seconds' }, '−15'),
-    h('div', { class: 'rest-time' }, left > 0 ? clock(left) : 'Go!'),
     h('button', { class: 'icon-btn', onclick: () => adjustRest(15), 'aria-label': 'Plus 15 seconds' }, '+15'),
     h('button', { class: 'icon-btn', onclick: stopRest, 'aria-label': 'Stop rest timer' }, 'Skip'));
 }
@@ -160,7 +162,7 @@ export function pickExercise(onPick) {
         && (!cat || x.category === cat) && (!ql || x.name.toLowerCase().includes(ql)));
       const exact = state.exercises.some(x => x.name.toLowerCase() === ql && (x.owner == null || x.owner === me));
       mount(list,
-        ql && !exact && h('button', { class: 'list-item create', onclick: () => createFlow(q.trim()) }, `＋ Create “${q.trim()}”`),
+        ql && !exact && h('button', { class: 'list-item create', onclick: () => createFlow(q.trim()) }, ic('plus', 18), `Create “${q.trim()}”`),
         items.slice(0, 150).map(x => h('button', { class: 'list-item', onclick: () => { close(); onPick(x); } },
           h('span', {}, x.name), h('span', { class: 'muted small' }, x.owner ? 'Custom · ' + x.category : x.category))),
         !items.length && !ql && h('p', { class: 'muted center' }, 'No exercises in this category.'));
@@ -239,8 +241,8 @@ export async function editDetails(exerciseId, onSaved) {
     const drawAdj = () => mount(adjBox, f.adjustments.map((a, i) => h('div', { class: 'row gap adj' },
       h('input', { placeholder: 'e.g. Back pad', value: a.label, 'aria-label': 'Adjustment name', oninput: e => (a.label = e.target.value) }),
       h('input', { placeholder: 'e.g. 4', value: a.value, 'aria-label': 'Adjustment value', class: 'short', oninput: e => (a.value = e.target.value) }),
-      h('button', { class: 'icon-btn', 'aria-label': 'Remove adjustment', onclick: () => { f.adjustments.splice(i, 1); drawAdj(); } }, '✕'))),
-      h('button', { class: 'btn small', onclick: () => { f.adjustments.push({ label: '', value: '' }); drawAdj(); } }, '＋ Add adjustment'));
+      h('button', { class: 'icon-btn', 'aria-label': 'Remove adjustment', onclick: () => { f.adjustments.splice(i, 1); drawAdj(); } }, ic('close', 18)))),
+      h('button', { class: 'btn small', onclick: () => { f.adjustments.push({ label: '', value: '' }); drawAdj(); } }, ic('plus', 18), 'Add adjustment'));
     drawAdj();
     const field = (label, key, ph) => h('label', { class: 'field' }, h('span', {}, label),
       h('input', { value: f[key], placeholder: ph, oninput: e => (f[key] = e.target.value), 'data-noautofocus': '1' }));
@@ -263,6 +265,7 @@ export async function editDetails(exerciseId, onSaved) {
 
 // ---------- active workout screen ----------------------------------------
 const detailCache = new Map();
+let lastTicked = null;   // the set just ticked gets a little 'pop'
 
 export function renderWorkout(root) {
   const w = active();
@@ -273,13 +276,18 @@ export function renderWorkout(root) {
   const rerender = () => renderWorkout(root);
   const upd = fn => { const cur = active(); fn(cur); save(cur); return cur; };
 
-  const elapsed = h('span', { class: 'muted small', id: 'elapsed' }, duration(w.started_at, new Date()));
-  const header = h('div', { class: 'wk-head' },
-    h('input', { class: 'wk-name', value: w.name, 'aria-label': 'Workout name', onchange: e => {
-      const cur = upd(c => (c.name = e.target.value || 'Workout'));
-      api.upsert('workouts', { id: cur.id, name: cur.name, owner: api.userId(), started_at: cur.started_at }); } }),
+  const since = () => { const t = Math.max(0, Math.floor((Date.now() - new Date(w.started_at)) / 1000)); return t >= 3600 ? `${Math.floor(t / 3600)}:${clock(t % 3600).padStart(5, '0')}` : clock(t).padStart(5, '0'); };
+  const elapsed = h('div', { class: 'wk-clock', id: 'elapsed', 'aria-label': 'Time since you started' }, since());
+  const doneSets = w.items.reduce((n, it) => n + it.sets.filter(s => s.done).length, 0);
+  const doneEx = w.items.filter(it => it.sets.length && it.sets.every(s => s.done)).length;
+  const header = h('div', {},
+    h('div', { class: 'wk-head' },
+      h('input', { class: 'wk-name', value: w.name, 'aria-label': 'Workout name', onchange: e => {
+        const cur = upd(c => (c.name = e.target.value || 'Workout'));
+        api.upsert('workouts', { id: cur.id, name: cur.name, owner: api.userId(), started_at: cur.started_at }); } }),
+      h('button', { class: 'btn dark', onclick: () => finish(active()) }, 'Finish')),
     elapsed,
-    h('button', { class: 'btn primary', onclick: () => finish(active()) }, 'Finish'));
+    h('div', { class: 'wk-sub' }, w.items.length ? `${doneEx} of ${w.items.length} exercise${w.items.length === 1 ? '' : 's'} done · ${doneSets} set${doneSets === 1 ? '' : 's'} logged` : 'Add an exercise to begin'));
 
   const cards = w.items.map((it, idx) => {
     const d = detailCache.get(it.exercise_id);
@@ -308,7 +316,7 @@ export function renderWorkout(root) {
         value: s.reps ?? '', placeholder: it.targetReps || '', 'aria-label': `Set ${s.set_no}${side} reps`,
         onchange: e => { const cur = upd(c => { c.items[idx].sets[si].reps = e.target.value === '' ? null : Math.round(+e.target.value); });
           if (s.done) persistSet(cur, cur.items[idx], cur.items[idx].sets[si]); } });
-      const tick = h('button', { class: 'tick' + (s.done ? ' on' : ''), 'aria-pressed': String(s.done), 'aria-label': `Log set ${s.set_no}${side}`,
+      const tick = h('button', { class: 'tick' + (s.done ? ' on' : '') + (s.id === lastTicked ? ' pop' : ''), 'aria-pressed': String(s.done), 'aria-label': `Log set ${s.set_no}${side}`,
         onclick: () => {
           const cur = upd(c => {
             const t = c.items[idx].sets[si];
@@ -317,11 +325,11 @@ export function renderWorkout(root) {
             t.done = !t.done && !!t.reps;
           });
           const t = cur.items[idx].sets[si];
-          if (t.done) { persistSet(cur, cur.items[idx], t); startRest(it.rest); }
+          if (t.done) { persistSet(cur, cur.items[idx], t); startRest(it.rest); lastTicked = t.id; haptic(); }
           else if (!t.reps) toast('Enter reps first');
           else api.remove('sets', 'id=eq.' + t.id);
           rerender();
-        } }, '✓');
+        } }, ic('check', 22));
       return h('div', { class: 'set-row' + (s.done ? ' done' : '') + (s.side === 'R' ? ' side-r' : '') },
         h('span', { class: 'set-no' + (s.side ? ' sided' : '') }, label(s)),
         h('span', { class: 'prev muted small' }, p ? `${fmtW(p.weight_kg, false)}×${p.reps}` : '—'),
@@ -333,8 +341,8 @@ export function renderWorkout(root) {
         h('input', { type: 'number', inputmode: 'numeric', min: 0, step: 15, value: it.rest, 'data-noautofocus': '1',
           onchange: e => { upd(c => (c.items[idx].rest = Math.max(0, +e.target.value || 0))); } })),
       h('div', { class: 'row gap' },
-        h('button', { class: 'btn', disabled: idx === 0, onclick: () => { upd(c => c.items.splice(idx - 1, 0, c.items.splice(idx, 1)[0])); resequence(); close(); rerender(); } }, '↑ Move up'),
-        h('button', { class: 'btn', disabled: idx === w.items.length - 1, onclick: () => { upd(c => c.items.splice(idx + 1, 0, c.items.splice(idx, 1)[0])); resequence(); close(); rerender(); } }, '↓ Move down')),
+        h('button', { class: 'btn', disabled: idx === 0, onclick: () => { upd(c => c.items.splice(idx - 1, 0, c.items.splice(idx, 1)[0])); resequence(); close(); rerender(); } }, ic('up', 18), 'Move up'),
+        h('button', { class: 'btn', disabled: idx === w.items.length - 1, onclick: () => { upd(c => c.items.splice(idx + 1, 0, c.items.splice(idx, 1)[0])); resequence(); close(); rerender(); } }, ic('down', 18), 'Move down')),
       h('button', { class: 'btn danger block', onclick: () => {
         const cur = active(); cur.items[idx].sets.filter(s => s.done).forEach(s => api.remove('sets', 'id=eq.' + s.id));
         cur.items.splice(idx, 1); save(cur); resequence(); close(); rerender(); } }, 'Remove exercise')));
@@ -343,8 +351,8 @@ export function renderWorkout(root) {
       h('div', { class: 'ex-head' },
         h('button', { class: 'ex-title', onclick: () => editDetails(it.exercise_id, onDetails) },
           h('strong', {}, exName(it.exercise_id)),
-          h('span', { class: 'muted small' }, summary || 'Tap to add machine / seat settings')),
-        h('button', { class: 'icon-btn', 'aria-label': 'Exercise options', onclick: menu }, '⋯')),
+          h('span', { class: 'settings-chip' }, ic('settings', 14), summary || 'Add machine / seat settings')),
+        h('button', { class: 'icon-btn', 'aria-label': 'Exercise options', onclick: menu }, ic('more', 22))),
       d?.notes && h('p', { class: 'note small' }, d.notes),
       h('div', { class: 'set-row head muted small' }, h('span', {}, 'Set'), h('span', {}, 'Last'), h('span', {}, wUnit()), h('span', {}, 'Reps'), h('span', {}, '')),
       rows,
@@ -356,7 +364,7 @@ export function renderWorkout(root) {
             const row = { id: api.uuid(), set_no: n, side, done: false };
             const p = prevFor(t, row);
             t.sets.push({ ...row, reps: p?.reps ?? last?.reps ?? t.targetReps, weight_kg: p ? +p.weight_kg : last?.weight_kg ?? null });
-          } }); rerender(); } }, '＋ Add set'),
+          } }); rerender(); } }, ic('plus', 18), 'Add set'),
         setCount(it) > 1 && h('button', { class: 'btn small ghost', onclick: () => { upd(c => {
           const t = c.items[idx]; const n = setCount(t);
           t.sets.filter(x => x.set_no === n && x.done).forEach(x => api.remove('sets', 'id=eq.' + x.id));
@@ -368,17 +376,18 @@ export function renderWorkout(root) {
     !w.items.length && h('p', { class: 'muted center' }, 'Add your first exercise to get started.'),
     h('button', { class: 'btn block', onclick: () => pickExercise(ex => {
       const cur = upd(c => c.items.push(newItem(ex.id, 90, 3, null, knownUni(ex.id))));
-      rerender(); fillPrev(cur); }) }, '＋ Add exercise'),
+      rerender(); fillPrev(cur); }) }, ic('plus', 18), 'Add exercise'),
     h('label', { class: 'field' }, h('span', {}, 'Workout notes'),
       h('textarea', { rows: 2, placeholder: 'How did it feel?', oninput: e => upd(c => (c.notes = e.target.value)) }, w.notes || '')),
     h('button', { class: 'btn danger ghost block', onclick: () => discard(active()) }, 'Discard workout'));
 
+  lastTicked = null;
   clearInterval(renderWorkout.t);
   renderWorkout.t = setInterval(() => {
-    const el = document.getElementById('elapsed'); const cur = active();
-    if (!el || !cur) return clearInterval(renderWorkout.t);
-    el.textContent = duration(cur.started_at, new Date());
-  }, 15000);
+    const el = document.getElementById('elapsed');
+    if (!el || !active()) return clearInterval(renderWorkout.t);
+    el.textContent = since();
+  }, 1000);
 }
 
 // Keep saved sets' exercise order in sync after reordering.

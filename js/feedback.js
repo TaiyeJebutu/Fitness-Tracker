@@ -2,7 +2,7 @@
 // comment; the app owner (see app_admins in the SQL) sets each post's status.
 import * as api from './api.js';
 import { avatar } from './avatar.js';
-import { h, mount, toast, sheet, confirmSheet, spinner, ago, fmtDay } from './ui.js';
+import { h, mount, toast, sheet, confirmSheet, spinner, ago, fmtDay, ic } from './ui.js';
 
 const STATUS = {
   open: ['Open', 'st-open'], planned: ['Planned', 'st-planned'], in_progress: ['In progress', 'st-progress'],
@@ -54,9 +54,9 @@ export async function renderFeedback(root) {
     opts.map(([k, l]) => h('button', { class: v[key] === k ? 'on' : '', 'aria-pressed': String(v[key] === k),
       onclick: () => { v[key] = k; api.LS.set(VIEW_KEY, v); renderFeedback(root); } }, l)));
   mount(root,
-    h('a', { class: 'back', href: '#/me' }, '‹ Me'),
+    h('a', { class: 'back', href: '#/me' }, ic('back', 18), 'Me'),
     h('div', { class: 'section-head' }, h('h1', {}, 'Feedback'),
-      h('button', { class: 'btn primary small', onclick: () => editPost(null) }, '＋ New post')),
+      h('button', { class: 'btn primary small', onclick: () => editPost(null) }, ic('plus', 18), 'New post')),
     h('p', { class: 'muted small' }, 'Suggest features and report bugs. Everyone using the app can see and upvote posts.'),
     seg('kind', [['all', 'All'], ['feature', '💡 Features'], ['bug', '🐞 Bugs']], 'Type'),
     h('div', { class: 'row gap fb-filters' },
@@ -136,8 +136,8 @@ export async function renderPost(root, id) {
       api.get(`feedback_posts?id=eq.${id}&select=*,${AUTHOR},feedback_votes(count)`, { cache: false }),
       api.get(`feedback_comments?post_id=eq.${id}&select=*,author_profile:profiles!feedback_comments_author_fkey(username,avatar_icon,avatar_color)&order=created_at.asc`, { cache: false }),
       api.get(`feedback_votes?post_id=eq.${id}&user_id=eq.${me}&select=post_id`, { cache: false }), loadAdmins()]);
-  } catch (e) { mount(root, h('a', { class: 'back', href: '#/feedback' }, '‹ Feedback'), h('p', { class: 'muted' }, e.network ? 'The feedback board needs an internet connection.' : e.message)); return; }
-  if (!p) { mount(root, h('a', { class: 'back', href: '#/feedback' }, '‹ Feedback'), h('p', { class: 'muted' }, 'This post was deleted.')); return; }
+  } catch (e) { mount(root, h('a', { class: 'back', href: '#/feedback' }, ic('back', 18), 'Feedback'), h('p', { class: 'muted' }, e.network ? 'The feedback board needs an internet connection.' : e.message)); return; }
+  if (!p) { mount(root, h('a', { class: 'back', href: '#/feedback' }, ic('back', 18), 'Feedback'), h('p', { class: 'muted' }, 'This post was deleted.')); return; }
   const post = { ...p, votes: p.feedback_votes?.[0]?.count || 0, mine: voted.length > 0 };
   const isAuthor = p.author === me;
   const owner = amOwner();
@@ -154,7 +154,7 @@ export async function renderPost(root, id) {
   let draft = '';
   const cbtn = h('button', { class: 'btn primary', type: 'submit' }, 'Send');
   mount(root,
-    h('a', { class: 'back', href: '#/feedback' }, '‹ Feedback'),
+    h('a', { class: 'back', href: '#/feedback' }, ic('back', 18), 'Feedback'),
     h('div', { class: 'fb-head' }, voteButton(post), h('h1', {}, p.title)),
     h('div', { class: 'tags' }, kindTag(p.kind), statusTag(p.status)),
     h('p', { class: 'muted small row gap' }, avatar(p.author_profile, 22), `@${p.author_profile?.username || '?'}`, ownerTag(p.author), h('span', {}, '· ' + fmtDay(p.created_at))),
@@ -172,7 +172,7 @@ export async function renderPost(root, id) {
       h('div', { class: 'row between' },
         h('span', { class: 'row gap small' }, avatar(c.author_profile, 22), h('strong', {}, '@' + (c.author_profile?.username || '?')), ownerTag(c.author), h('span', { class: 'muted' }, ago(c.created_at))),
         (c.author === me || owner) && h('button', { class: 'icon-btn', 'aria-label': 'Delete comment', onclick: async () => {
-          try { await api.removeNow('feedback_comments', 'id=eq.' + c.id); renderPost(root, id); } catch (x) { toast(x.message, 'err'); } } }, '✕')),
+          try { await api.removeNow('feedback_comments', 'id=eq.' + c.id); renderPost(root, id); } catch (x) { toast(x.message, 'err'); } } }, ic('close', 18))),
       h('p', { class: 'fb-text' }, c.body))),
     h('form', { class: 'fb-reply', onsubmit: async e => {
       e.preventDefault();

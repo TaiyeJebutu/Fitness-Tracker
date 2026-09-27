@@ -5,7 +5,7 @@ import { workoutCard, stat } from './train.js';
 import { avatar, profileById } from './avatar.js';
 import { checkBadges, earnedBy, badgeStrip, badgeFeedItems } from './badges.js';
 import { activityData, perDay, activityGrid } from './home.js';
-import { h, mount, toast, confirmSheet, spinner, fmtW, fmtL, fmtBig, mondayStart, lineChart, toW, wUnit, currentPage } from './ui.js';
+import { h, mount, toast, confirmSheet, spinner, fmtW, fmtL, fmtBig, mondayStart, lineChart, toW, wUnit, currentPage, ic, chev } from './ui.js';
 
 // ---------- Feed + friends ----------------------------------------------
 export async function renderFeed(root, tab = 'feed') {
@@ -13,7 +13,7 @@ export async function renderFeed(root, tab = 'feed') {
     h('a', { href: '#/feed', class: tab === 'feed' ? 'on' : '', role: 'tab' }, 'Feed'),
     h('a', { href: '#/friends', class: tab === 'friends' ? 'on' : '', role: 'tab' }, 'Friends'));
   const body = h('div', {}, spinner());
-  mount(root, tabs, body);
+  mount(root, h('h1', {}, 'Friends'), tabs, body);
   try { await loadFriends(); } catch (e) { mount(body, h('p', { class: 'muted' }, e.message)); return; }
   const incoming = state.friendRows.filter(r => r.status === 'pending' && r.addressee === api.userId());
   if (incoming.length) tabs.querySelector('a[href="#/friends"]').append(h('span', { class: 'badge' }, incoming.length));
@@ -38,6 +38,9 @@ async function feed(body) {
   } catch (e) { mount(body, h('p', { class: 'muted' }, e.message)); }
 }
 
+// Redraw the Friends tab after a change — but only if the person is still looking at it.
+const refreshFriends = () => (location.hash || '#/').startsWith('#/friends') && renderFeed(currentPage(), 'friends');
+
 function friends(body, incoming) {
   const uid = api.userId();
   const outgoing = state.friendRows.filter(r => r.status === 'pending' && r.requester === uid);
@@ -56,18 +59,18 @@ function friends(body, incoming) {
       if (existing) return toast('Request already sent');
       await api.insertNow('friendships', { requester: uid, addressee: p.id });
       toast(`Request sent to @${p.username}`);
-      renderFeed(currentPage(), 'friends');
+      refreshFriends();
     } catch (e) { toast(e.message, 'err'); }
   };
   const accept = async r => {
     try { await api.patch('friendships', `requester=eq.${r.requester}&addressee=eq.${r.addressee}`, { status: 'accepted' });
-      toast('Friend added'); await loadExercises(); renderFeed(currentPage(), 'friends'); checkBadges(); }
+      toast('Friend added'); await loadExercises(); refreshFriends(); checkBadges(); }
     catch (e) { toast(e.message, 'err'); }
   };
   const drop = async (r, msg) => {
     if (msg && !(await confirmSheet(msg, 'You can always send a new request later.', 'Remove'))) return;
     try { await api.removeNow('friendships', `requester=eq.${r.requester}&addressee=eq.${r.addressee}`);
-      renderFeed(currentPage(), 'friends'); }
+      refreshFriends(); }
     catch (e) { toast(e.message, 'err'); }
   };
   mount(body,
@@ -81,7 +84,7 @@ function friends(body, incoming) {
         h('button', { class: 'btn small ghost', onclick: () => drop(r) }, 'Decline'))))],
     h('h2', {}, 'Friends'),
     state.friends.length ? state.friends.map(f => h('a', { class: 'card row between', href: '#/friend/' + f.id },
-      h('span', { class: 'row gap' }, avatar(f, 32), h('strong', {}, '@' + f.username)), h('span', { class: 'muted' }, '›'))) : h('p', { class: 'muted' }, 'No friends yet.'),
+      h('span', { class: 'row gap' }, avatar(f, 32), h('strong', {}, '@' + f.username)), chev())) : h('p', { class: 'muted' }, 'No friends yet.'),
     outgoing.length > 0 && [h('h2', {}, 'Sent'), outgoing.map(r => h('div', { class: 'card row between' },
       h('span', { class: 'row gap' }, avatar(r.adr, 32), h('span', {}, '@' + r.adr?.username, h('span', { class: 'muted small' }, ' · waiting'))),
       h('button', { class: 'btn small ghost', onclick: () => drop(r) }, 'Cancel')))]);
@@ -107,7 +110,7 @@ export async function renderFriend(root, id) {
   for (const m of metrics) byMetric.set(m.metric, [...(byMetric.get(m.metric) || []), m]);
   const friendRow = state.friendRows.find(r => r.status === 'accepted' && (r.requester === id || r.addressee === id));
   mount(root,
-    h('a', { class: 'back', href: '#/friends' }, '‹ Friends'),
+    h('a', { class: 'back', href: '#/friends' }, ic('back', 18), 'Friends'),
     h('div', { class: 'row gap' }, avatar(f, 52), h('h1', {}, '@' + f.username)),
     h('div', { class: 'section-head' }, h('h2', {}, `Badges (${earned.length})`), h('a', { class: 'btn small ghost', href: '#/badges/' + f.id }, 'See all')),
     badgeStrip(earned, 8),

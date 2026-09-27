@@ -1,4 +1,5 @@
 // Small DOM + formatting helpers shared by every screen.
+import { icon } from './icons.js';
 
 export function h(tag, props, ...kids) {
   const el = tag === 'svg' || props?.svg ? document.createElementNS('http://www.w3.org/2000/svg', tag) : document.createElement(tag);
@@ -6,7 +7,7 @@ export function h(tag, props, ...kids) {
     if (v == null || v === false || k === 'svg') continue;
     if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v);
     else if (k === 'class') el.setAttribute('class', v);
-    else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+    else if (k === 'style' && typeof v === 'object') for (const [sk, sv] of Object.entries(v)) sk.startsWith('--') ? el.style.setProperty(sk, sv) : (el.style[sk] = sv);
     else if (k === 'value' || k === 'checked' || k === 'selected') el[k] = v;
     else el.setAttribute(k, v === true ? '' : v);
   }
@@ -20,6 +21,43 @@ function add(el, kids) {
   }
 }
 export const svg = (tag, props = {}, ...kids) => h(tag, { ...props, svg: true }, ...kids);
+
+/** An icon from the app's own icon set, as an element (inherits the text colour). */
+export function ic(name, size = 22) {
+  const t = document.createElement('template');
+  t.innerHTML = icon(name, size);
+  return t.content.firstElementChild;
+}
+
+/** A trailing › chevron for list rows. */
+export const chev = () => h('span', { class: 'chev', 'aria-hidden': 'true' }, ic('chevron', 18));
+
+/** The app's logo mark: a rounded square with a 3/4 progress ring and a dot, in the viewer's accent colour. */
+export function logoMark(size = 28) {
+  const t = document.createElement('template');
+  t.innerHTML = `<svg class="mark" width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="var(--accent)"/><path d="M32 16a16 16 0 1 1-16 16" fill="none" stroke="var(--accent-ink)" stroke-width="6" stroke-linecap="round"/><circle cx="32" cy="32" r="4.5" fill="var(--accent-ink)"/></svg>`;
+  return t.content.firstElementChild;
+}
+
+/** A short buzz on phones that support it (ignored elsewhere). */
+export const haptic = (ms = 12) => { try { navigator.vibrate?.(ms); } catch {} };
+
+/** A brief burst of confetti in the accent colours. Skipped when the viewer prefers reduced motion. */
+export function confetti(n = 70) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cs = getComputedStyle(document.documentElement);
+  const colours = [cs.getPropertyValue('--accent').trim() || '#2f6f5e', '#e8b64c', '#d9785a', '#8fb8a8', cs.getPropertyValue('--ink').trim() || '#1d1c1a'];
+  const box = h('div', { class: 'confetti', 'aria-hidden': 'true' });
+  for (let i = 0; i < n; i++) {
+    box.append(h('i', { style: {
+      left: Math.random() * 100 + '%', background: colours[i % colours.length],
+      animationDelay: Math.random() * 0.35 + 's', animationDuration: 1.3 + Math.random() * 0.9 + 's',
+      '--dx': (Math.random() - 0.5) * 160 + 'px', '--rot': (Math.random() * 720 - 360) + 'deg',
+    } }));
+  }
+  document.body.append(box);
+  setTimeout(() => box.remove(), 2600);
+}
 
 export function mount(el, ...kids) { el.replaceChildren(); add(el, kids); return el; }
 
@@ -43,7 +81,7 @@ export function sheet(title, build) {
     h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
       h('div', { class: 'sheet-head' },
         h('h2', {}, title),
-        h('button', { class: 'icon-btn', 'aria-label': 'Close', onclick: close }, '✕')),
+        h('button', { class: 'icon-btn', 'aria-label': 'Close', onclick: close }, ic('close', 20))),
       body));
   document.body.append(wrap);
   document.addEventListener('keydown', esc);

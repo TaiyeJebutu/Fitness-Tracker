@@ -5,7 +5,7 @@ import { active } from './workout.js';
 import { avatar } from './avatar.js';
 import { earnedBy, badgeStrip } from './badges.js';
 import { fmtMetric } from './social.js';
-import { h, svg, mount, spinner, toast, fmtW, fmtBig, fmtDay, fmtDate, mondayStart, e1rm, toW, wUnit, ago } from './ui.js';
+import { h, svg, mount, spinner, toast, fmtW, fmtBig, fmtDay, fmtDate, mondayStart, e1rm, toW, wUnit, ago, ic } from './ui.js';
 
 const DAY = 86400000;
 export const dayKey = d => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
@@ -145,17 +145,36 @@ const tile = (label, value, delta, goodUp = true) => h('div', { class: 'stat til
   delta != null && h('span', { class: 'delta small ' + (delta === 0 ? '' : (delta > 0) === goodUp ? 'up' : 'down') },
     delta === 0 ? '= same' : `${delta > 0 ? '▲' : '▼'} ${delta > 0 ? '+' : '−'}${Math.abs(delta)}`));
 
+function streakCard(streak, done, target, thisWeek) {
+  const R = 36, C = 2 * Math.PI * R, frac = Math.min(1, done / target);
+  const prog = svg('circle', { cx: 43, cy: 43, r: R, fill: 'none', 'stroke-width': 8, 'stroke-linecap': 'round', class: 'prog', 'stroke-dasharray': C, 'stroke-dashoffset': C });
+  requestAnimationFrame(() => requestAnimationFrame(() => prog.setAttribute('stroke-dashoffset', C * (1 - frac))));
+  return h('section', { class: 'card streak-card' },
+    h('div', { class: 'ring', role: 'img', 'aria-label': `${done} of ${target} sessions this week` },
+      svg('svg', { width: 86, height: 86, viewBox: '0 0 86 86' },
+        svg('circle', { cx: 43, cy: 43, r: R, fill: 'none', 'stroke-width': 8, class: 'track' }), prog),
+      h('b', {}, streak)),
+    h('div', {},
+      h('div', { class: 'title' }, streak ? `${streak}-week streak` : 'No streak yet'),
+      h('div', { class: 'muted small' }, `${done} of ${target} sessions this week`),
+      h('div', { class: 'small streak-note' }, streak ? (thisWeek ? (done >= target ? 'Weekly goal reached. Lovely work.' : 'You’ve trained this week. Keep it going.') : 'Train this week to keep your streak.') : 'Train this week to start one.')));
+}
+
 // ---------- the dashboard -------------------------------------------------------
 export async function renderHome(root) {
   const me = state.profile || {};
   const a = active();
   const body = h('div', {}, spinner());
+  const hr = new Date().getHours();
+  const greet = hr < 5 ? 'Good evening' : hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
   mount(root,
-    h('div', { class: 'row gap home-head' }, avatar(me, 44), h('div', {}, h('h1', {}, `Hi${me.username ? ' @' + me.username : ''}`),
-      h('p', { class: 'muted small' }, new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })))),
-    a ? h('a', { class: 'card resume', href: '#/workout' }, h('strong', {}, 'Workout in progress'),
-        h('span', { class: 'muted small' }, `${a.name} · started ${ago(a.started_at)}`), h('span', { class: 'btn primary small' }, 'Resume'))
-      : h('a', { class: 'btn primary block big', href: '#/train' }, 'Start a workout'),
+    h('div', { class: 'home-head' },
+      h('div', {}, h('span', { class: 'cap' }, new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })),
+        h('h1', {}, greet + (me.username ? ', ' + me.username : ''))),
+      h('a', { href: '#/me', 'aria-label': 'Me' }, avatar(me, 44))),
+    a && h('a', { class: 'card resume', href: '#/workout' }, h('strong', {}, 'Workout in progress'),
+        h('span', { class: 'muted small' }, `${a.name} · started ${ago(a.started_at)}`), h('span', { class: 'btn primary small' }, 'Resume')),
+    !a && h('a', { class: 'fab', href: '#/train' }, ic('plus', 20), 'Start workout'),
     body);
 
   let data;
@@ -183,6 +202,9 @@ export async function renderHome(root) {
   const weeksWith = new Set(workouts.map(w => Math.round((+mondayStart(new Date(w.started_at)) - +wk0) / (7 * DAY))));
   let streak = 0, k = weeksWith.has(0) ? 0 : -1;
   while (weeksWith.has(k)) { streak++; k--; }
+  // weekly target: your usual number of sessions (average of the last 8 full weeks, at least 2)
+  const last8 = workouts.filter(w => inRange(w.started_at, addDays(wk0, -56), wk0)).length;
+  const target = Math.max(2, Math.round(last8 / 8));
 
   // ---- weekly volume, last 12 weeks
   const volWeeks = Array.from({ length: 12 }, (_, i) => addDays(wk0, -7 * (11 - i)));
@@ -225,9 +247,7 @@ export async function renderHome(root) {
   const bwDef = METRICS.find(m => m.key === 'bodyweight');
 
   mount(body,
-    h('section', { class: 'card streak-card' },
-      h('div', { class: 'hero' }, h('span', { class: 'hero-num' }, streak), h('span', {}, h('strong', {}, `week${streak === 1 ? '' : 's'} in a row`), h('br'),
-        h('span', { class: 'muted small' }, streak ? (weeksWith.has(0) ? 'You’ve trained this week — keep it going!' : 'Train this week to keep your streak') : 'Train this week to start a streak')))),
+    streakCard(streak, cur.w, target, weeksWith.has(0)),
 
     h('h2', {}, 'Activity'),
     h('section', { class: 'card' }, activityGrid(days)),
@@ -258,7 +278,7 @@ export async function renderHome(root) {
         h('div', { class: 'meter', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': next, 'aria-valuenow': total },
           h('span', { style: { width: Math.min(100, (total / next) * 100) + '%' } })))),
 
-    h('div', { class: 'section-head' }, h('h2', {}, 'Body'), h('a', { class: 'btn small ghost', href: '#/body' }, 'All body stats ›')),
+    h('div', { class: 'section-head' }, h('h2', {}, 'Body'), h('a', { class: 'btn small ghost', href: '#/body' }, 'All body stats', ic('chevron', 16))),
     h('a', { class: 'card row between bw-card', href: '#/body/bodyweight' },
       h('span', {}, h('span', { class: 'muted small' }, 'Bodyweight'), h('br'),
         h('strong', { class: 'big-num' }, bwLatest ? fmtMetric(bwDef, bwLatest.value) : '—'), h('br'),

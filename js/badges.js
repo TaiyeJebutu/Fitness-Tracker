@@ -3,7 +3,7 @@
 import * as api from './api.js';
 import { state, loadFriends } from './store.js';
 import { avatar, profileById } from './avatar.js';
-import { h, mount, toast, spinner, fmtDay } from './ui.js';
+import { h, mount, toast, spinner, fmtDay, ic, ago, confetti } from './ui.js';
 
 export const BADGES = [
   ['Workouts', [
@@ -55,6 +55,7 @@ export function checkBadges() {
       if (api.pendingCount()) return [];
       const fresh = (await api.rpc('check_achievements', {}, { cache: false })) || [];
       const known = fresh.filter(k => BADGE[k]);
+      if (known.length) confetti();
       if (known.length === 1) toast(`${BADGE[known[0]].icon} New badge: ${BADGE[known[0]].name}`);
       else if (known.length > 1) toast(`🏅 ${known.length} new badges! See them under Me → Badges`);
       return known;
@@ -90,7 +91,7 @@ export async function renderBadges(root, userId) {
   const rows = await earnedBy(id);
   const got = new Map(rows.map(r => [r.badge, r.earned_at]));
   mount(root,
-    h('a', { class: 'back', href: id === me ? '#/me' : '#/friend/' + id }, '‹ Back'),
+    h('a', { class: 'back', href: id === me ? '#/me' : '#/friend/' + id }, ic('back', 18), 'Back'),
     h('div', { class: 'row gap' }, avatar(who, 44), h('h1', {}, id === me ? 'My badges' : '@' + who.username)),
     h('p', { class: 'muted' }, `${got.size} of ${TOTAL} earned`),
     BADGES.map(([group, list]) => [
@@ -113,11 +114,12 @@ export function badgeFeedItems(rows) {
   }
   return [...groups.values()].map(g => {
     const p = profileById(g.user_id);
-    return { at: g.at, el: h('a', { class: 'card badge-feed', href: '#/badges/' + g.user_id },
-      h('div', { class: 'row gap' }, avatar(p, 32),
-        h('div', {}, h('strong', {}, `@${p?.username || 'friend'} `),
-          g.badges.length === 1 ? `earned “${BADGE[g.badges[0]].name}”` : `earned ${g.badges.length} badges`,
-          h('div', { class: 'muted small' }, fmtDay(g.at)))),
-      h('div', { class: 'badge-icons', 'aria-hidden': 'true' }, g.badges.slice(0, 8).map(b => BADGE[b].icon).join(' '))) };
+    const n = g.badges.length;
+    return { at: g.at, el: h('a', { class: 'card', href: '#/badges/' + g.user_id },
+      h('div', { class: 'feed-head' }, avatar(p, 38), h('span', { class: 'who' }, `@${p?.username || 'friend'}`, h('span', { class: 'muted small' }, ago(g.at)))),
+      h('div', { class: 'badge-feed' },
+        h('span', { class: 'medal', 'aria-hidden': 'true' }, BADGE[g.badges[0]].icon),
+        h('div', {}, h('div', { class: 'wk-title', style: { marginTop: 0 } }, n === 1 ? BADGE[g.badges[0]].name : `${n} new badges`),
+          h('div', { class: 'muted small' }, n === 1 ? BADGE[g.badges[0]].desc || 'New badge earned' : g.badges.slice(0, 8).map(b => BADGE[b].icon).join(' ')))) ) };
   });
 }

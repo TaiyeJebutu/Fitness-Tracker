@@ -4,23 +4,24 @@ import { state, exName, loadRoutines, saveRoutine } from './store.js';
 import { active, startWorkout, pickExercise, editDetails, detailsSummary, exerciseForm, newExerciseSheet } from './workout.js';
 import { details, setUnilateral, updateExercise, deleteExercise, CATEGORIES } from './store.js';
 import { avatar } from './avatar.js';
-import { h, mount, toast, sheet, confirmSheet, fmtW, fmtDate, fmtDay, duration, ago, spinner, lineChart, e1rm, toW, wUnit } from './ui.js';
+import { h, mount, toast, sheet, confirmSheet, fmtW, fmtDate, fmtDay, duration, ago, spinner, lineChart, e1rm, toW, wUnit, ic } from './ui.js';
 
 // ---------- Train home ---------------------------------------------------
 export async function renderTrain(root) {
   const draw = () => {
     const a = active();
     mount(root,
+      h('h1', {}, 'Train'),
       a && h('a', { class: 'card resume', href: '#/workout' },
         h('strong', {}, 'Workout in progress'), h('span', { class: 'muted small' }, `${a.name} · started ${ago(a.started_at)}`),
         h('span', { class: 'btn primary small' }, 'Resume')),
-      !a && h('button', { class: 'btn primary block big', onclick: () => startWorkout(null) }, 'Start empty workout'),
-      h('div', { class: 'section-head' }, h('h2', {}, 'Routines'), h('a', { class: 'btn small', href: '#/routine/new' }, '＋ New')),
+      !a && h('button', { class: 'btn primary block big', onclick: () => startWorkout(null) }, ic('play', 20), 'Start empty workout'),
+      h('div', { class: 'section-head' }, h('h2', {}, 'Routines'), h('a', { class: 'btn small', href: '#/routine/new' }, ic('plus', 18), 'New')),
       state.routines.length ? state.routines.map(r => h('div', { class: 'card routine' },
         h('a', { class: 'routine-info', href: '#/routine/' + r.id },
           h('strong', {}, r.name),
           h('span', { class: 'muted small' }, (r.items || []).map(i => exName(i.exercise_id)).join(', ') || 'No exercises yet')),
-        h('button', { class: 'btn primary small', disabled: !!a, onclick: () => startWorkout(r) }, 'Start')))
+        h('button', { class: 'btn dark small', disabled: !!a, onclick: () => startWorkout(r) }, ic('play', 16), 'Start')))
         : h('p', { class: 'muted' }, 'Save your usual sessions (e.g. “Push day”) as routines to start them in one tap.'),
       h('div', { class: 'section-head' }, h('h2', {}, 'Recent'), h('a', { class: 'btn small ghost', href: '#/history' }, 'All history')),
       recent);
@@ -44,12 +45,15 @@ export function workoutCard(wk, who, prof) {
   // a left + right pair counts as one set
   const count = sets => (sets.some(s => s.side) ? Math.max(sets.filter(s => s.side === 'L').length, sets.filter(s => s.side === 'R').length, sets.filter(s => !s.side).length) : sets.length);
   const total = [...byEx.values()].reduce((n, sets) => n + count(sets), 0);
+  const mins = wk.ended_at ? duration(wk.started_at, wk.ended_at) : '—';
   return h('a', { class: 'card wk-card', href: '#/history/' + wk.id },
-    h('div', { class: 'row between' },
-      h('span', { class: 'row gap' }, prof && avatar(prof, 28), h('strong', {}, who ? `${who} · ${wk.name}` : wk.name)),
-      h('span', { class: 'muted small' }, fmtDate(wk.started_at))),
-    h('div', { class: 'muted small' }, `${total} sets · ${fmtW(vol)} total${wk.ended_at ? ' · ' + duration(wk.started_at, wk.ended_at) : ''}`),
-    h('ul', { class: 'wk-lines' }, [...byEx].slice(0, 6).map(([id, sets]) => {
+    who ? h('div', { class: 'feed-head' }, avatar(prof || {}, 38),
+        h('span', { class: 'who' }, who, h('span', { class: 'muted small' }, ago(wk.started_at))))
+      : h('div', { class: 'row between' }, h('span', { class: 'cap' }, fmtDate(wk.started_at)), h('span', { class: 'chev' }, ic('chevron', 18))),
+    h('div', { class: 'wk-title', style: who ? null : { marginTop: '4px' } }, wk.name),
+    h('div', { class: 'wk-mini' },
+      h('span', {}, 'Time', h('b', {}, mins)), h('span', {}, 'Sets', h('b', {}, total)), h('span', {}, 'Volume', h('b', {}, fmtW(vol)))),
+    byEx.size > 0 && h('ul', { class: 'wk-lines' }, [...byEx].slice(0, 6).map(([id, sets]) => {
       const best = sets.reduce((b, s) => (+s.weight_kg > +b.weight_kg ? s : b), sets[0]);
       return h('li', {}, h('span', {}, `${count(sets)} × ${exName(id)}${sets.some(s => s.side) ? ' (L/R)' : ''}`), h('span', { class: 'muted' }, `${fmtW(best.weight_kg)} × ${best.reps}`));
     }), byEx.size > 6 && h('li', { class: 'muted' }, `+${byEx.size - 6} more`)));
@@ -79,7 +83,7 @@ export async function renderWorkoutDetail(root, id) {
   for (const s of (wk.sets || []).sort((a, b) => a.position - b.position || a.set_no - b.set_no))
     groups.set(s.exercise_id, [...(groups.get(s.exercise_id) || []), s]);
   mount(root,
-    h('a', { class: 'back', href: mine ? '#/history' : '#/feed' }, '‹ Back'),
+    h('a', { class: 'back', href: mine ? '#/history' : '#/feed' }, ic('back', 18), 'Back'),
     h('h1', {}, wk.name),
     h('p', { class: 'muted' }, `${mine ? '' : '@' + wk.profiles?.username + ' · '}${fmtDay(wk.started_at)}${wk.ended_at ? ' · ' + duration(wk.started_at, wk.ended_at) : ''}`),
     wk.notes && h('p', { class: 'note' }, wk.notes),
@@ -104,9 +108,9 @@ export async function renderRoutine(root, id) {
   const draw = () => mount(list, r.items.map((it, i) => h('div', { class: 'card routine-item' },
     h('div', { class: 'row between' }, h('strong', {}, exName(it.exercise_id)),
       h('div', { class: 'row' },
-        h('button', { class: 'icon-btn', 'aria-label': 'Move up', disabled: i === 0, onclick: () => { r.items.splice(i - 1, 0, r.items.splice(i, 1)[0]); draw(); } }, '↑'),
-        h('button', { class: 'icon-btn', 'aria-label': 'Move down', disabled: i === r.items.length - 1, onclick: () => { r.items.splice(i + 1, 0, r.items.splice(i, 1)[0]); draw(); } }, '↓'),
-        h('button', { class: 'icon-btn', 'aria-label': 'Remove', onclick: () => { r.items.splice(i, 1); draw(); } }, '✕'))),
+        h('button', { class: 'icon-btn', 'aria-label': 'Move up', disabled: i === 0, onclick: () => { r.items.splice(i - 1, 0, r.items.splice(i, 1)[0]); draw(); } }, ic('up', 20)),
+        h('button', { class: 'icon-btn', 'aria-label': 'Move down', disabled: i === r.items.length - 1, onclick: () => { r.items.splice(i + 1, 0, r.items.splice(i, 1)[0]); draw(); } }, ic('down', 20)),
+        h('button', { class: 'icon-btn', 'aria-label': 'Remove', onclick: () => { r.items.splice(i, 1); draw(); } }, ic('close', 18)))),
     h('div', { class: 'row gap' },
       num('Sets', it.sets, v => (it.sets = v || 1)),
       num('Reps', it.reps, v => (it.reps = v || null)),
@@ -120,12 +124,12 @@ export async function renderRoutine(root, id) {
   draw();
   loadUni(r.items.map(i => i.exercise_id)).then(draw);
   mount(root,
-    h('a', { class: 'back', href: '#/train' }, '‹ Back'),
+    h('a', { class: 'back', href: '#/train' }, ic('back', 18), 'Back'),
     h('h1', {}, existing ? 'Edit routine' : 'New routine'),
     h('label', { class: 'field' }, h('span', {}, 'Name'),
       h('input', { value: r.name, placeholder: 'e.g. Push day', oninput: e => (r.name = e.target.value), 'data-noautofocus': '1' })),
     list,
-    h('button', { class: 'btn block', onclick: () => pickExercise(async ex => { r.items.push({ exercise_id: ex.id, sets: 3, reps: 10, rest: 90 }); draw(); await loadUni([ex.id]); draw(); }) }, '＋ Add exercise'),
+    h('button', { class: 'btn block', onclick: () => pickExercise(async ex => { r.items.push({ exercise_id: ex.id, sets: 3, reps: 10, rest: 90 }); draw(); await loadUni([ex.id]); draw(); }) }, ic('plus', 18), 'Add exercise'),
     h('button', { class: 'btn primary block', onclick: () => {
       if (!r.name.trim()) return toast('Give the routine a name', 'err');
       saveRoutine({ id: r.id, name: r.name.trim(), items: r.items }); toast('Routine saved'); location.hash = '#/train'; } }, 'Save routine'),
@@ -174,7 +178,7 @@ export async function renderExercise(root, id) {
     } catch (e) { toast(e.message, 'err'); }
   };
   mount(root,
-    h('a', { class: 'back', href: 'javascript:history.back()' }, '‹ Back'),
+    h('a', { class: 'back', href: 'javascript:history.back()' }, ic('back', 18), 'Back'),
     h('h1', {}, exName(id)),
     ex && h('p', { class: 'muted small' }, `${ex.category}${mine ? ' · your exercise' : ' · built-in'}`),
     h('section', { class: 'card' },
@@ -224,9 +228,9 @@ export function renderExercises(root) {
       cat = c; chips.querySelectorAll('.chip').forEach(b => b.classList.remove('on')); e.currentTarget.classList.add('on'); draw(); } }, c || 'All')));
   draw();
   mount(root,
-    h('a', { class: 'back', href: '#/me' }, '‹ Me'),
+    h('a', { class: 'back', href: '#/me' }, ic('back', 18), 'Me'),
     h('div', { class: 'section-head' }, h('h1', {}, 'Exercises'),
-      h('button', { class: 'btn primary small', onclick: () => newExerciseSheet(ex => { location.hash = '#/exercise/' + ex.id; }) }, '＋ New')),
+      h('button', { class: 'btn primary small', onclick: () => newExerciseSheet(ex => { location.hash = '#/exercise/' + ex.id; }) }, ic('plus', 18), 'New')),
     h('p', { class: 'muted small' }, 'Tap an exercise to set left & right, machine settings, or see your history.'),
     h('input', { type: 'search', placeholder: 'Search exercises', 'aria-label': 'Search exercises', oninput: e => { q = e.target.value; draw(); } }),
     chips, list);

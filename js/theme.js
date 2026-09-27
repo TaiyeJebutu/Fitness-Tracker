@@ -1,13 +1,22 @@
 // Loaded before the page draws: app version + the viewer's colour scheme (saved on this device).
-window.APP_VERSION = '1.5.0';
+window.APP_VERSION = '2.0.0';
 
 (function () {
   const KEY = 'ft.theme';
+  // Colour themes, tuned for the Stone design (muted, calm). Sage is the default.
   const PRESETS = [
-    ['Blue', '#2f5fe0'], ['Teal', '#0f8b8d'], ['Green', '#1f8a3b'], ['Purple', '#7c3aed'],
-    ['Pink', '#d6336c'], ['Red', '#d9352b'], ['Orange', '#e8590c'], ['Gold', '#b88400'],
+    ['Sage', '#2f6f5e'], ['Ocean', '#2c5d8f'], ['Plum', '#6b4c8a'], ['Clay', '#b0583a'],
+    ['Rose', '#a8445f'], ['Ochre', '#96701a'], ['Forest', '#3f6b2f'], ['Slate', '#4b5563'],
   ];
-  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
+  // colours from the old (v1) palette move to their closest calm equivalent
+  const OLD = { '#2f5fe0': '#2c5d8f', '#0f8b8d': '#2f6f5e', '#1f8a3b': '#3f6b2f', '#7c3aed': '#6b4c8a',
+    '#d6336c': '#a8445f', '#d9352b': '#b0583a', '#e8590c': '#b0583a', '#b88400': '#96701a' };
+  const load = () => {
+    let t; try { t = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { t = {}; }
+    const c = (t.accent || '').toLowerCase();
+    if (OLD[c]) { t.accent = OLD[c]; save(t); }
+    return t;
+  };
   const save = t => { try { localStorage.setItem(KEY, JSON.stringify(t)); } catch {} };
 
   // ---- colour maths: keep any chosen accent readable in light and dark mode ----
@@ -31,14 +40,14 @@ window.APP_VERSION = '1.5.0';
     if (valid(t.accent)) {
       const base = rgb(t.accent);
       const light = fit(base, [255, 255, 255], 4.5, [0, 0, 0]);
-      const dark = fit(mix(base, [255, 255, 255], 0.2), [24, 27, 33], 4.5, [255, 255, 255]);
+      const dark = fit(mix(base, [255, 255, 255], 0.25), [31, 30, 27], 4.5, [255, 255, 255]);   // on the dark Stone surface
       st.setProperty('--accent-l', hex(light)); st.setProperty('--accent-ink-l', ink(light));
       st.setProperty('--accent-d', hex(dark)); st.setProperty('--accent-ink-d', ink(dark));
     } else ['--accent-l', '--accent-ink-l', '--accent-d', '--accent-ink-d'].forEach(p => st.removeProperty(p));
     // browser/status-bar colour
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
       const isDarkMeta = (m.getAttribute('media') || '').includes('dark');
-      m.content = t.mode === 'dark' ? '#0f1115' : t.mode === 'light' ? '#f6f7f9' : isDarkMeta ? '#0f1115' : '#f6f7f9';
+      m.content = t.mode === 'dark' ? '#141311' : t.mode === 'light' ? '#f3f1ec' : isDarkMeta ? '#141311' : '#f3f1ec';
     });
   }
   window.FTTheme = { load, save, apply, PRESETS, valid };

@@ -3,7 +3,7 @@ import * as api from './api.js';
 import { state, METRICS } from './store.js';
 import { fmtMetric } from './social.js';
 import { checkBadges } from './badges.js';
-import { h, mount, toast, spinner, lineChart, toW, fromW, toL, fromL, wUnit, lUnit, fmtDay, todayISO, currentPage } from './ui.js';
+import { h, mount, toast, spinner, lineChart, toW, fromW, toL, fromL, wUnit, lUnit, fmtDay, todayISO, currentPage, ic } from './ui.js';
 
 const unitFor = def => (def.kind === 'w' ? wUnit() : def.kind === 'pct' ? '%' : lUnit());
 const toView = (def, v) => (def.kind === 'w' ? toW(v) : def.kind === 'pct' ? +v : toL(v));
@@ -54,7 +54,7 @@ export async function renderBody(root, key = 'bodyweight') {
     [...rows].reverse().map(r => h('div', { class: 'card row between' },
       h('span', {}, fmtDay(r.measured_on + 'T12:00')),
       h('span', { class: 'row gap' }, h('strong', {}, fmtMetric(def, r.value)),
-        h('button', { class: 'icon-btn', 'aria-label': 'Delete entry', onclick: () => { api.remove('body_metrics', 'id=eq.' + r.id); renderBody(root, def.key); } }, '✕')))));
+        h('button', { class: 'icon-btn', 'aria-label': 'Delete entry', onclick: () => { api.remove('body_metrics', 'id=eq.' + r.id); renderBody(root, def.key); } }, ic('close', 18))))));
 }
 
 async function toggleShare(key, on) {
