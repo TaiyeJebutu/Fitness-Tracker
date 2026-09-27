@@ -5,6 +5,7 @@ import { renderWorkout, active, tickRest } from './workout.js';
 import { renderTrain, renderHistory, renderWorkoutDetail, renderRoutine, renderExercise, renderExercises } from './train.js';
 import { renderFeed, renderFriend, renderRanks } from './social.js';
 import { renderBody } from './body.js';
+import { renderActivity, renderSport } from './cardio.js';
 import { exportData, importData } from './backup.js';
 import { avatar, editAvatar } from './avatar.js';
 import { renderFeedback, renderPost } from './feedback.js';
@@ -31,7 +32,7 @@ async function route() {
   const [, a = '', b] = (location.hash || '#/').slice(1).split('/');
   nav.querySelectorAll('a').forEach(x => {
     const t = x.dataset.tab.slice(2);
-    x.classList.toggle('on', t === a || (t === '' && a === 'body') || (t === 'train' && ['workout', 'routine', 'history', 'exercise'].includes(a)) || (t === 'feed' && ['friends', 'friend'].includes(a))
+    x.classList.toggle('on', t === a || (t === '' && a === 'body') || (t === 'train' && ['workout', 'routine', 'history', 'exercise', 'activity', 'sport'].includes(a)) || (t === 'feed' && ['friends', 'friend'].includes(a))
       || (t === 'me' && ((a === 'badges' && !b) || a === 'exercises' || a === 'feedback')) || (t === 'feed' && a === 'badges' && !!b));
   });
   nav.querySelector('a[data-tab="#/train"] span:last-child').textContent = active() ? 'Workout' : 'Train';
@@ -50,6 +51,8 @@ async function route() {
       case 'history': return b ? await renderWorkoutDetail(page, b) : await renderHistory(page);
       case 'exercise': return await renderExercise(page, b);
       case 'exercises': return renderExercises(page);
+      case 'activity': return await renderActivity(page, b);
+      case 'sport': return await renderSport(page, b);
       case 'feedback': return b ? await renderPost(page, b) : await renderFeedback(page);
       case 'feed': return await renderFeed(page, 'feed');
       case 'friends': return await renderFeed(page, 'friends');

@@ -16,7 +16,7 @@ export const BADGES = [
     ['w500', '👑', '500 workouts', 'Finish 500 workouts'],
   ]],
   ['Streaks', [
-    ['streak4', '🔥', '4-week streak', 'Train at least once a week, 4 weeks in a row'],
+    ['streak4', '🔥', '4-week streak', 'Train at least once a week, 4 weeks in a row (gym, runs, swims or other activities)'],
     ['streak12', '🔥', '12-week streak', '12 weeks in a row'],
     ['streak26', '☄️', '26-week streak', 'Half a year without missing a week'],
     ['streak52', '🌟', '52-week streak', 'A whole year without missing a week'],
@@ -34,6 +34,16 @@ export const BADGES = [
     ['vol10t', '🧱', '10 tonnes', 'Lift 10,000 kg in total (weight × reps)'],
     ['vol100t', '🏗️', '100 tonnes', 'Lift 100,000 kg in total'],
     ['vol1000t', '🌋', '1,000 tonnes', 'Lift 1,000,000 kg in total'],
+  ]],
+  ['Running & swimming', [
+    ['run1', '👟', 'First run', 'Log your first run'],
+    ['run5k', '🏃', '5k', 'Run 5 km in one go'],
+    ['run_half', '🎽', 'Half marathon', 'Run 21.1 km in one go'],
+    ['run_full', '🏁', 'Marathon', 'Run 42.2 km in one go'],
+    ['run100', '🛣️', '100 km run', 'Run 100 km in total'],
+    ['swim1', '🏊', 'First swim', 'Log your first swim'],
+    ['swim1k', '🌊', '1 km swim', 'Swim 1 km in one go'],
+    ['swim10k', '🐬', '10 km swum', 'Swim 10 km in total'],
   ]],
   ['Social & body', [
     ['friend1', '🤝', 'First friend', 'Add your first friend'],

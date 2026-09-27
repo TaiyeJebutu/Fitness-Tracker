@@ -5,6 +5,7 @@ import { active } from './workout.js';
 import { avatar } from './avatar.js';
 import { earnedBy, badgeStrip } from './badges.js';
 import { fmtMetric } from './social.js';
+import { chooseActivity, activityName, fmtDist, KINDS, hmShort } from './cardio.js';
 import { h, svg, mount, spinner, toast, fmtW, fmtBig, fmtDay, fmtDate, mondayStart, e1rm, toW, wUnit, ago, ic } from './ui.js';
 
 const DAY = 86400000;
@@ -17,10 +18,11 @@ const shortDate = d => new Date(d).toLocaleDateString(undefined, { day: 'numeric
 export async function activityData(uid, { withSets = true } = {}) {
   const key = 'ft.dash.' + uid;
   try {
-    const [workouts, sets] = await Promise.all([
+    const [workouts, sets, activities] = await Promise.all([
       api.getAll(`workouts?owner=eq.${uid}&ended_at=not.is.null&select=id,name,started_at,ended_at&order=started_at.asc`),
-      withSets ? api.getAll(`sets?owner=eq.${uid}&select=workout_id,exercise_id,reps,weight_kg,created_at&order=created_at.asc`) : []]);
-    const data = { workouts, sets };
+      withSets ? api.getAll(`sets?owner=eq.${uid}&select=workout_id,exercise_id,reps,weight_kg,created_at&order=created_at.asc`) : [],
+      api.getAll(`activities?owner=eq.${uid}&select=id,kind,sport,title,started_at,duration_s,distance_m&order=started_at.asc`).catch(() => [])]);
+    const data = { workouts, sets, activities };
     if (uid === api.userId()) api.LS.set(key, data);
     return data;
   } catch (e) {
@@ -30,23 +32,27 @@ export async function activityData(uid, { withSets = true } = {}) {
   }
 }
 
-/** Per-day totals: day key -> { sets, workouts: [{id, name}] } */
-export function perDay({ workouts, sets }) {
+/** Per-day totals: day key -> { sets, effort, workouts: [{id, name, href}] }.
+ *  "workouts" lists every session that day (gym workouts and runs/swims/other activities).
+ *  Effort (for the shading) = sets + minutes of activity ÷ 4, so a 40-minute run counts like 10 sets. */
+export function perDay({ workouts, sets, activities = [] }) {
   const days = new Map();
-  const get = k => days.get(k) || days.set(k, { sets: 0, workouts: [] }).get(k);
-  for (const w of workouts) get(dayKey(w.started_at)).workouts.push({ id: w.id, name: w.name });
+  const get = k => days.get(k) || days.set(k, { sets: 0, mins: 0, workouts: [] }).get(k);
+  for (const w of workouts) get(dayKey(w.started_at)).workouts.push({ id: w.id, name: w.name, href: '#/history/' + w.id });
+  for (const a of activities) { const d = get(dayKey(a.started_at)); d.workouts.push({ id: a.id, name: activityName(a), href: '#/activity/' + a.id }); d.mins += a.duration_s / 60; }
   const byWorkout = new Map(workouts.map(w => [w.id, w]));
   for (const s of sets) {
     const w = byWorkout.get(s.workout_id);
     if (w) get(dayKey(w.started_at)).sets++;       // count the set on the day the workout happened
   }
+  for (const d of days.values()) d.effort = d.sets + Math.round(d.mins / 4);
   return days;
 }
 
 // ---------- activity grid (GitHub-style) ---------------------------------------
 /** Shade levels 1–4 from this person's own quartiles, so it adapts to how much they train. */
 function levels(days) {
-  const counts = [...days.values()].map(d => d.sets || (d.workouts.length ? 1 : 0)).filter(Boolean).sort((a, b) => a - b);
+  const counts = [...days.values()].map(d => d.effort || (d.workouts.length ? 1 : 0)).filter(Boolean).sort((a, b) => a - b);
   if (!counts.length) return () => 0;
   const q = p => counts[Math.min(counts.length - 1, Math.floor(p * counts.length))];
   const [q1, q2, q3] = counts.length >= 4 ? [q(0.25), q(0.5), q(0.75)] : [counts[0], counts[0], counts[counts.length - 1]];
@@ -71,20 +77,20 @@ export function activityGrid(days, { weeks = 53, linkWorkouts = true } = {}) {
         if (w > 0 || date.getDate() <= 7) grid.append(svg('text', { x: w * S, y: 11, class: 'hm-month' }, date.toLocaleDateString(undefined, { month: 'short' })));
       }
       const k = dayKey(date), v = days.get(k);
-      const n = v ? v.sets || (v.workouts.length ? 1 : 0) : 0;
+      const n = v ? v.effort || (v.workouts.length ? 1 : 0) : 0;
       if (v?.workouts.length) { workoutsInRange += v.workouts.length; activeDays++; }
       const rect = svg('rect', { x: w * S, y: top + d * S, width: C, height: C, rx: 2.5, class: 'hm' + lvl(n) + (k === dayKey(today) ? ' today' : '') });
       rect.addEventListener('click', () => {
         selected?.classList.remove('sel'); rect.classList.add('sel'); selected = rect;
         const label = date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
         if (!v?.workouts.length) { mount(info, h('strong', {}, label), ' · rest day'); return; }
-        mount(info, h('strong', {}, label), ` · ${v.workouts.length} workout${v.workouts.length > 1 ? 's' : ''} · ${v.sets} sets`,
-          h('span', { class: 'hm-links' }, v.workouts.map(x => linkWorkouts ? h('a', { href: '#/history/' + x.id }, x.name + ' ›') : h('span', {}, x.name))));
+        mount(info, h('strong', {}, label), ` · ${v.workouts.length} session${v.workouts.length > 1 ? 's' : ''}${v.sets ? ` · ${v.sets} sets` : ''}`,
+          h('span', { class: 'hm-links' }, v.workouts.map(x => linkWorkouts ? h('a', { href: x.href }, x.name + ' ›') : h('span', {}, x.name))));
       });
       grid.append(rect);
     }
   }
-  grid.setAttribute('aria-label', `Activity over the last ${weeks} weeks: ${workoutsInRange} workouts on ${activeDays} days`);
+  grid.setAttribute('aria-label', `Activity over the last ${weeks} weeks: ${workoutsInRange} sessions on ${activeDays} days`);
   const scroller = h('div', { class: 'hm-scroll' }, grid);
   requestAnimationFrame(() => { scroller.scrollLeft = scroller.scrollWidth; });
   const legend = h('div', { class: 'hm-legend muted small' }, 'Less', [0, 1, 2, 3, 4].map(i => h('span', { class: 'hm-key hm' + i })), 'More');
@@ -93,12 +99,12 @@ export function activityGrid(days, { weeks = 53, linkWorkouts = true } = {}) {
       h('div', { class: 'hm-days muted', 'aria-hidden': 'true', style: { paddingTop: top + 'px' } },
         ['Mon', '', 'Wed', '', 'Fri', '', 'Sun'].map(t => h('span', { style: { height: S + 'px' } }, t))),
       scroller),
-    h('div', { class: 'row between hm-foot' }, h('span', { class: 'small' }, h('strong', {}, workoutsInRange), ` workouts in the last ${weeks === 53 ? 'year' : weeks + ' weeks'}`), legend),
+    h('div', { class: 'row between hm-foot' }, h('span', { class: 'small' }, h('strong', {}, workoutsInRange), ` sessions in the last ${weeks === 53 ? 'year' : weeks + ' weeks'}`), legend),
     info);
 }
 
 // ---------- small charts --------------------------------------------------------
-function columnChart(values, labels, fmt, title) {
+export function columnChart(values, labels, fmt, title) {
   const W = 320, H = 150, P = { l: 6, r: 6, t: 22, b: 20 };
   const max = Math.max(...values, 0) || 1;
   const band = (W - P.l - P.r) / values.length, bw = Math.min(18, band - 6);
@@ -174,13 +180,14 @@ export async function renderHome(root) {
       h('a', { href: '#/me', 'aria-label': 'Me' }, avatar(me, 44))),
     a && h('a', { class: 'card resume', href: '#/workout' }, h('strong', {}, 'Workout in progress'),
         h('span', { class: 'muted small' }, `${a.name} · started ${ago(a.started_at)}`), h('span', { class: 'btn primary small' }, 'Resume')),
-    !a && h('a', { class: 'fab', href: '#/train' }, ic('plus', 20), 'Start workout'),
+    !a && h('button', { class: 'fab', onclick: chooseActivity }, ic('plus', 20), 'Start or log'),
     body);
 
   let data;
   try { data = await activityData(api.userId()); }
   catch (e) { mount(body, h('p', { class: 'muted' }, e.message)); return; }
   const { workouts, sets } = data;
+  const acts = data.activities || [];
   const days = perDay(data);
   const byWorkout = new Map(workouts.map(w => [w.id, w]));
 
@@ -192,18 +199,19 @@ export async function renderHome(root) {
     const ws = workouts.filter(w => inRange(w.started_at, a, b));
     const ids = new Set(ws.map(w => w.id));
     const ss = sets.filter(s => ids.has(s.workout_id));
-    return { w: ws.length, s: ss.length, vol: ss.reduce((t, s) => t + s.weight_kg * s.reps, 0),
-      mins: Math.round(ws.reduce((t, w) => t + (new Date(w.ended_at) - new Date(w.started_at)), 0) / 60000) };
+    const as = acts.filter(x => inRange(x.started_at, a, b));
+    return { w: ws.length + as.length, s: ss.length, vol: ss.reduce((t, s) => t + s.weight_kg * s.reps, 0),
+      mins: Math.round((ws.reduce((t, w) => t + (new Date(w.ended_at) - new Date(w.started_at)), 0) + as.reduce((t, x) => t + x.duration_s * 1000, 0)) / 60000) };
   };
   const cur = sum(wk0, now), prev = sum(lwk0, lwkEnd);
   const hm = m => (m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`);
 
   // ---- weekly streak (weeks in a row with a workout)
-  const weeksWith = new Set(workouts.map(w => Math.round((+mondayStart(new Date(w.started_at)) - +wk0) / (7 * DAY))));
+  const weeksWith = new Set([...workouts, ...acts].map(w => Math.round((+mondayStart(new Date(w.started_at)) - +wk0) / (7 * DAY))));
   let streak = 0, k = weeksWith.has(0) ? 0 : -1;
   while (weeksWith.has(k)) { streak++; k--; }
   // weekly target: your usual number of sessions (average of the last 8 full weeks, at least 2)
-  const last8 = workouts.filter(w => inRange(w.started_at, addDays(wk0, -56), wk0)).length;
+  const last8 = [...workouts, ...acts].filter(w => inRange(w.started_at, addDays(wk0, -56), wk0)).length;
   const target = Math.max(2, Math.round(last8 / 8));
 
   // ---- weekly volume, last 12 weeks
@@ -254,8 +262,18 @@ export async function renderHome(root) {
 
     h('div', { class: 'section-head' }, h('h2', {}, 'This week'), h('span', { class: 'muted small' }, 'vs this time last week')),
     h('div', { class: 'tiles' },
-      tile('Workouts', cur.w, cur.w - prev.w), tile('Sets', cur.s, cur.s - prev.s),
+      tile('Sessions', cur.w, cur.w - prev.w), tile('Sets', cur.s, cur.s - prev.s),
       tile('Volume', fmtBig(cur.vol), null), tile('Time', hm(cur.mins), null)),
+
+    acts.length > 0 && [h('div', { class: 'section-head' }, h('h2', {}, 'Running, swimming & more'), h('span', { class: 'muted small' }, 'this week')),
+      h('section', { class: 'card list-card' }, ['run', 'swim', 'other'].filter(k => acts.some(x => x.kind === k)).map(k => {
+        const xs = acts.filter(x => x.kind === k && new Date(x.started_at) >= wk0);
+        const dist = xs.reduce((t, x) => t + (+x.distance_m || 0), 0), secs = xs.reduce((t, x) => t + x.duration_s, 0);
+        return h('a', { class: 'row gap', href: '#/sport/' + k }, h('span', { class: 'list-ico' }, ic(KINDS[k].icon, 18)),
+          h('span', { class: 'grow' }, h('strong', {}, KINDS[k].plural), h('br'), h('span', { class: 'muted small' },
+            xs.length ? `${xs.length} session${xs.length > 1 ? 's' : ''} · ${k === 'other' ? hmShort(secs) : fmtDist(k, dist)}` : 'Nothing yet this week')),
+          h('span', { class: 'chev' }, ic('chevron', 18)));
+      }))],
 
     h('h2', {}, 'Trends'),
     columnChart(vol, volWeeks.map(d => 'w/c ' + shortDate(d)), fmtBig, 'Weekly volume, last 12 weeks'),
@@ -274,7 +292,7 @@ export async function renderHome(root) {
     h('section', { class: 'card' },
       badgeStrip(earned, 6),
       next && h('div', { class: 'meter-row' },
-        h('div', { class: 'row between small' }, h('span', {}, `Next: ${next} workouts`), h('span', { class: 'muted' }, `${total} / ${next}`)),
+        h('div', { class: 'row between small' }, h('span', {}, `Next: ${next} workout${next > 1 ? "s" : ""}`), h('span', { class: 'muted' }, `${total} / ${next}`)),
         h('div', { class: 'meter', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': next, 'aria-valuenow': total },
           h('span', { style: { width: Math.min(100, (total / next) * 100) + '%' } })))),
 

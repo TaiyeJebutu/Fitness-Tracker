@@ -5,7 +5,7 @@
 //
 // Topic body blocks: a string is a paragraph; { steps: [...] } is a numbered list; { tip: '...' } is a highlighted tip.
 
-export const SECTIONS = ['Getting started', 'Workouts', 'Exercises', 'Body stats', 'Friends', 'Leaderboards & badges', 'Your settings', 'Backup', 'Feedback', 'Troubleshooting'];
+export const SECTIONS = ['Getting started', 'Workouts', 'Running, swimming & more', 'Exercises', 'Body stats', 'Friends', 'Leaderboards & badges', 'Your settings', 'Backup', 'Feedback', 'Troubleshooting'];
 
 export const TOPICS = [
   // ---------- Getting started ----------
@@ -15,7 +15,7 @@ export const TOPICS = [
       'Open it from the new icon from then on.'] },
   { id: 'tabs', section: 'Getting started', title: 'Finding your way around', keywords: 'tabs menu navigation bottom bar',
     body: ['The bar at the bottom has five tabs:',
-      { steps: ['Home: your dashboard — streak, activity grid, this week, trends, records, badges and bodyweight (tap it for all body stats).', 'Train: start workouts, your routines and recent workouts.', 'Friends: your friends’ workouts and badges, and friend requests.', 'Ranks: leaderboards for you and your friends.', 'Me: your profile, avatar, badges, exercises, settings, backup and feedback.'] },
+      { steps: ['Home: your dashboard — streak, activity grid, this week, trends, records, badges and bodyweight (tap it for all body stats).', 'Train: start gym workouts, log runs, swims and other activities, your routines and recent training.', 'Friends: your friends’ workouts and badges, and friend requests.', 'Ranks: leaderboards for you and your friends — lifting, running, swimming and activity.', 'Me: your profile, avatar, badges, exercises, settings, backup and feedback.'] },
       { tip: 'The help button (the circled question mark) at the top opens help for the screen you’re on. Tap the logo to jump back to Home.' }] },
   { id: 'offline', section: 'Getting started', title: 'Using it with no signal', keywords: 'offline internet wifi signal sync upload gym basement',
     body: ['You can log a whole workout with no signal. Everything is saved on your phone and uploads automatically when you’re back online.',
@@ -25,12 +25,12 @@ export const TOPICS = [
 
   { id: 'dashboard', section: 'Getting started', title: 'Your Home dashboard', keywords: 'home dashboard stats streak this week trends volume records pr body areas', screens: [''],
     body: ['Home is your dashboard. From top to bottom:',
-      { steps: ['Streak — the ring fills as you work towards your usual number of sessions for the week (your average over the last 8 weeks, at least 2). The number in the middle is how many weeks in a row you’ve trained.', 'Activity — a grid of every day (see “The activity grid”).', 'This week — workouts, sets, volume and time, compared with the same point last week.', 'Trends — your weekly volume for the last 12 weeks (tap a column for its value), and which body areas you trained in the last 30 days.', 'Recent personal records — sets that beat your previous best estimated 1-rep max.', 'Badges — your latest ones and progress to the next workout milestone.', 'Body — your latest bodyweight with a mini trend. Tap it, or “All body stats”, to open Body.'] },
-      { tip: 'The floating “Start workout” button takes you straight to Train. While a workout is running, a dark “Workout in progress” card takes its place.' }] },
+      { steps: ['Streak — the ring fills as you work towards your usual number of sessions for the week (your average over the last 8 weeks, at least 2). The number in the middle is how many weeks in a row you’ve trained. Gym workouts, runs, swims and other activities all count.', 'Activity — a grid of every day (see “The activity grid”).', 'This week — sessions (gym workouts plus runs, swims and other activities), sets, volume and time, compared with the same point last week.', 'Running, swimming & more — this week’s distance or time for each kind of activity you log. Tap one for its stats and personal bests.', 'Trends — your weekly volume for the last 12 weeks (tap a column for its value), and which body areas you trained in the last 30 days.', 'Recent personal records — sets that beat your previous best estimated 1-rep max.', 'Badges — your latest ones and progress to the next workout milestone.', 'Body — your latest bodyweight with a mini trend. Tap it, or “All body stats”, to open Body.'] },
+      { tip: 'The floating “Start or log” button lets you start a gym workout or log a run, swim or other activity. While a workout is running, a dark “Workout in progress” card takes its place.' }] },
   { id: 'activity-grid', section: 'Getting started', title: 'The activity grid', keywords: 'activity grid heatmap calendar days github squares consistency', screens: [],
     body: ['The grid shows the last year, one square per day (Monday at the top), with the newest week on the right — swipe sideways to see earlier months.',
-      'Darker squares mean more sets that day. The shades are based on your own training, so they adapt as you get busier.',
-      { tip: 'Tap a square to see that day’s workouts, and tap a workout to open it.' },
+      'Darker squares mean more training that day: every set counts, and so does time spent on runs, swims and other activities (a 40-minute run counts about the same as 10 sets). The shades are based on your own training, so they adapt as you get busier.',
+      { tip: 'Tap a square to see that day’s sessions, and tap one to open it.' },
       'Friends can see your grid on your friend page. To hide it, switch off “Friends can see my activity grid” under Me → Privacy.'] },
 
   // ---------- Workouts ----------
@@ -57,6 +57,20 @@ export const TOPICS = [
     body: ['Train → “All history” (or Me → Workout history) lists your finished workouts. Tap one to see every set and estimated 1-rep maxes, or to delete it.'] },
 
   // ---------- Exercises ----------
+  // ---------- Running, swimming & more ----------
+  { id: 'log-activity', section: 'Running, swimming & more', title: 'Log a run, swim or other activity', keywords: 'run running swim swimming cycling walking hiking rowing football tennis yoga log activity cardio distance time pace', screens: ['activity'],
+    body: ['Runs, swims and other sports are logged after you’ve done them — copy the distance and time from your watch or running app.',
+      { steps: ['On Train, tap Run, Swim or Other (or use the floating “Start or log” button on Home).', 'Enter the distance and time. Your pace (or speed) is worked out as you type.', 'Runs: add how it felt, from 1 (very easy) to 5 (very hard). Swims: pick the pool length or open water, and the stroke. Other: pick the sport — Cycling, Walking, Hiking, Rowing, Football, Tennis, Yoga, or type your own.', 'Change the date and start time if it wasn’t just now, add a title or notes if you like, and tap Save.'] },
+      'Distances follow your units setting: km and metres, or miles and yards.',
+      'Open an activity from History, Home or your feed to see it, edit it or delete it. Friends can see your activities, just like your workouts.',
+      { tip: 'Values have to be realistic — for example a run can’t be faster than the world record — so typos get caught before they’re saved.' },
+      'It works with no signal too: activities are saved on your phone and upload when you’re back online.'] },
+  { id: 'sport-stats', section: 'Running, swimming & more', title: 'Your running & swimming stats', keywords: 'stats personal best pb pr fastest 5k 10k half marathon mile longest pace totals weekly distance', screens: ['sport'],
+    body: ['Open Running, Swimming or Other activities from Home (or from any activity) to see:',
+      { steps: ['Totals for this week, month, year and all time.', 'Distance per week for the last 12 weeks (time per week for other activities) — tap a column for its value.', 'Personal bests: fastest mile, 5k, 10k, half and full marathon, longest run and fastest pace. Swimming shows fastest 400 m and 1500 m, longest swim and fastest pace.', 'Your recent activities.'] },
+      'Distance bests come from runs of about that distance (up to 5% longer), scaled to the exact distance — so a 5.1 km run in 25:30 counts as a 5k in 25:00.',
+      'Running and swimming badges, and the Cardio leaderboards on Ranks, use the same data.'] },
+
   { id: 'exercise-library', section: 'Exercises', title: 'Your exercise library', keywords: 'exercise create new custom rename delete library', screens: ['exercises'],
     body: ['Me → Exercises lists your own exercises and the built-in ones. Search or filter by body area.',
       { steps: ['Tap “+ New” to create an exercise: give it a name, a body area and, if needed, switch on Left & right.', 'Tap any exercise to open its page.'] },
@@ -87,18 +101,18 @@ export const TOPICS = [
     body: [{ steps: ['Friends → Friends tab.', 'Type your friend’s username and tap Add.', 'They accept the request on their Friends tab.'] },
       'Your username is shown there so you can share it. Only accepted friends see your workouts, routines and badges.'] },
   { id: 'feed', section: 'Friends', title: 'The feed', keywords: 'feed activity friends workouts badges', screens: ['feed'],
-    body: ['Friends → Feed shows your friends’ finished workouts and badges they’ve earned, newest first. Tap a workout to see its sets.'] },
+    body: ['Friends → Feed shows your friends’ finished workouts, runs, swims and other activities, and badges they’ve earned, newest first. Tap one to see the details.'] },
   { id: 'friend-page', section: 'Friends', title: 'A friend’s page & copying routines', keywords: 'copy routine friend page remove unfriend', screens: ['friend'],
-    body: ['Tap a friend to see their badges, routines, recent workouts and any body stats they share.',
+    body: ['Tap a friend to see their badges, routines, recent training and any body stats they share.',
       'Tap “Copy” on a routine to add it to your own routines. You can remove a friend at the bottom of their page.'] },
 
   // ---------- Leaderboards & badges ----------
-  { id: 'leaderboards', section: 'Leaderboards & badges', title: 'How the leaderboards work', keywords: 'ranks leaderboard best lift progress volume activity streak', screens: ['ranks'],
+  { id: 'leaderboards', section: 'Leaderboards & badges', title: 'How the leaderboards work', keywords: 'ranks leaderboard best lift progress volume activity streak cardio running swimming 5k distance', screens: ['ranks'],
     body: ['Leaderboards compare you with your friends:',
-      { steps: ['Best lift: highest estimated 1-rep max for the chosen exercise.', 'Progress: % change in best estimated 1-rep max, last 4 weeks vs the 4 weeks before (you need sessions in both).', 'Volume: total weight × reps since Monday.', 'Activity: workouts this week, weekly streak and workouts in the last 30 days.'] },
+      { steps: ['Lift: highest estimated 1-rep max for the chosen exercise.', 'Cardio: running distance this week or this month, fastest 5k, or swimming distance this month — pick from the list.', 'Progress: % change in best estimated 1-rep max, last 4 weeks vs the 4 weeks before (you need sessions in both).', 'Volume: total weight × reps since Monday.', 'Activity: sessions this week (gym, runs, swims and other activities), weekly streak and sessions in the last 30 days.'] },
       'For left & right exercises, each side counts as its own set.'] },
   { id: 'badges', section: 'Leaderboards & badges', title: 'Badges', keywords: 'badge achievement award earn streak pr', screens: ['badges'],
-    body: ['There are 25 badges for workouts, streaks, personal records, total volume, friends and body check-ins. Me → Badges shows them all — faded ones are still to earn, with how to get them.',
+    body: ['There are 33 badges for workouts, streaks, personal records, total volume, running, swimming, friends and body check-ins. Me → Badges shows them all — faded ones are still to earn, with how to get them.',
       'Badges are worked out from your real logged data after each workout, and a pop-up tells you when you earn one. Friends see your badges on your page and in their feed.'] },
 
   // ---------- Settings ----------
@@ -116,7 +130,7 @@ export const TOPICS = [
 
   // ---------- Backup ----------
   { id: 'backup', section: 'Backup', title: 'Export & import your data', keywords: 'backup export import restore file download move account',
-    body: ['Me → Backup → “Export my data” downloads everything (workouts, routines, body stats, exercise settings) as a file. Keep a copy now and then.',
+    body: ['Me → Backup → “Export my data” downloads everything (workouts, runs, swims and other activities, routines, body stats, exercise settings) as a file. Keep a copy now and then.',
       '“Import a backup” restores a file. You choose what happens if something already exists:',
       { steps: ['Keep what I have — only adds what’s missing (safe to run twice).', 'Backup wins — adds what’s missing and replaces your current versions.', 'Replace everything — deletes your current data first, then restores the file (asks you to confirm).'] },
       'You can import into a different account too, e.g. to move your history.'] },
@@ -136,6 +150,11 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '2.1.0', date: '2026-09-27', items: [
+    'Log runs, swims and other activities (cycling, walking, hiking, football, yoga, or your own) from the Train tab or Home’s “Start or log” button. Pace is worked out for you.',
+    'Running and swimming stats pages with weekly distance and personal bests — fastest mile, 5k, 10k, half and full marathon, and more.',
+    'Activities count towards your streak and the activity grid, appear in your history and friends’ feeds, and there’s a new Cardio leaderboard.',
+    '8 new badges for running and swimming, including 5k, half marathon, marathon and 1 km swim.'] },
   { version: '2.0.2', date: '2026-09-27', items: [
     'Body stats now only accept realistic values: body fat 1–75%, bodyweight 20–400 kg (45–881 lb), measurements 5–300 cm (2–118 in). This catches typos like 150% body fat.'] },
   { version: '2.0.1', date: '2026-09-27', items: [

@@ -5,6 +5,7 @@ import { workoutCard, stat } from './train.js';
 import { avatar, profileById } from './avatar.js';
 import { checkBadges, earnedBy, badgeStrip, badgeFeedItems } from './badges.js';
 import { activityData, perDay, activityGrid } from './home.js';
+import { activityCard, fmtDist, hms, bestAt } from './cardio.js';
 import { h, mount, toast, confirmSheet, spinner, fmtW, fmtL, fmtBig, mondayStart, lineChart, toW, wUnit, currentPage, ic, chev } from './ui.js';
 
 // ---------- Feed + friends ----------------------------------------------
@@ -27,12 +28,14 @@ async function feed(body) {
   }
   try {
     const ids = state.friends.map(f => f.id).join(',');
-    const [list, earned] = await Promise.all([
+    const [list, earned, acts] = await Promise.all([
       api.get(`workouts?owner=in.(${ids})&ended_at=not.is.null&select=id,name,owner,started_at,ended_at,profiles(username,avatar_icon,avatar_color),sets(exercise_id,reps,weight_kg,side)&order=started_at.desc&limit=40`),
-      api.get(`achievements?user_id=in.(${ids})&select=user_id,badge,earned_at&order=earned_at.desc&limit=100`).catch(() => [])]);
+      api.get(`achievements?user_id=in.(${ids})&select=user_id,badge,earned_at&order=earned_at.desc&limit=100`).catch(() => []),
+      api.get(`activities?owner=in.(${ids})&select=*,profiles(username,avatar_icon,avatar_color)&order=started_at.desc&limit=40`).catch(() => [])]);
     // friends' custom exercises need names too
     if (list.some(w => w.sets.some(s => !state.exById.has(s.exercise_id)))) await loadExercises();
-    const items = [...list.map(w => ({ at: w.started_at, el: workoutCard(w, '@' + w.profiles?.username, w.profiles) })), ...badgeFeedItems(earned)]
+    const items = [...list.map(w => ({ at: w.started_at, el: workoutCard(w, '@' + w.profiles?.username, w.profiles) })), ...badgeFeedItems(earned),
+      ...acts.map(a => ({ at: a.started_at, el: activityCard(a, '@' + a.profiles?.username, a.profiles) }))]
       .sort((a, b) => new Date(b.at) - new Date(a.at));
     mount(body, items.length ? items.map(i => i.el) : h('p', { class: 'muted' }, 'No friend workouts yet.'));
   } catch (e) { mount(body, h('p', { class: 'muted' }, e.message)); }
@@ -96,12 +99,15 @@ export async function renderFriend(root, id) {
   if (!state.friends.length) await loadFriends().catch(() => {});
   const f = state.friends.find(x => x.id === id);
   if (!f) { mount(root, h('p', { class: 'muted' }, 'Not in your friends list.'), h('a', { class: 'btn', href: '#/friends' }, 'Back')); return; }
-  const [routines, metrics, recent, earned] = await Promise.all([
+  const [routines, metrics, recent, earned, acts] = await Promise.all([
     api.get(`routines?owner=eq.${id}&select=*&order=name`).catch(() => []),
     api.get(`body_metrics?owner=eq.${id}&select=metric,value,measured_on&order=measured_on.asc`).catch(() => []),
     api.get(`workouts?owner=eq.${id}&ended_at=not.is.null&select=id,name,started_at,ended_at,sets(exercise_id,reps,weight_kg,side)&order=started_at.desc&limit=5`).catch(() => []),
     earnedBy(id),
+    api.get(`activities?owner=eq.${id}&select=*&order=started_at.desc&limit=5`).catch(() => []),
   ]);
+  const recentAll = [...recent.map(w => ({ at: w.started_at, el: workoutCard(w) })), ...acts.map(a => ({ at: a.started_at, el: activityCard(a) }))]
+    .sort((x, y) => new Date(y.at) - new Date(x.at)).slice(0, 6);
   const grid = h('div', {});
   if (f.share_activity !== false)
     activityData(id).then(d => mount(grid, h('h2', {}, 'Activity'), h('section', { class: 'card' }, activityGrid(perDay(d))))).catch(() => {});
@@ -126,8 +132,8 @@ export async function renderFriend(root, id) {
       })),
       byMetric.has('bodyweight') && lineChart(byMetric.get('bodyweight').map(m => ({ x: new Date(m.measured_on), y: toW(+m.value) })),
         { fmt: v => (Math.round(v * 10) / 10) + ' ' + wUnit(), label: `Bodyweight (${wUnit()})` })],
-    h('h2', {}, 'Recent workouts'),
-    recent.length ? recent.map(w => workoutCard(w)) : h('p', { class: 'muted' }, 'Nothing yet.'),
+    h('h2', {}, 'Recent training'),
+    recentAll.length ? recentAll.map(x => x.el) : h('p', { class: 'muted' }, 'Nothing yet.'),
     friendRow && h('button', { class: 'btn danger ghost block', onclick: async () => {
       if (!(await confirmSheet(`Remove @${f.username}?`, 'You’ll stop seeing each other’s workouts.', 'Remove'))) return;
       await api.removeNow('friendships', `requester=eq.${friendRow.requester}&addressee=eq.${friendRow.addressee}`).catch(e => toast(e.message, 'err'));
@@ -155,19 +161,24 @@ function copyRoutine(r, from) {
 }
 
 // ---------- Leaderboards -------------------------------------------------
-const LB_TABS = [['lift', 'Best lift'], ['progress', 'Progress'], ['volume', 'Volume'], ['activity', 'Activity']];
+const LB_TABS = [['lift', 'Lift'], ['progress', 'Progress'], ['volume', 'Volume'], ['cardio', 'Cardio'], ['activity', 'Activity']];
+const CARDIO = [['run_week', 'Running distance · this week'], ['run_month', 'Running distance · this month'], ['fast5k', 'Fastest 5k'],
+  ['swim_month', 'Swimming distance · this month']];
 
 export async function renderRanks(root, tab = 'lift') {
   const exKey = 'ft.lbExercise';
   const me = api.userId();
   let exId = api.LS.get(exKey) || state.exercises.find(x => x.name === 'Bench Press (Barbell)')?.id || state.exercises[0]?.id;
   const board = h('div', {});
+  let cardioKey = api.LS.get('ft.lbCardio') || 'run_week';
   const picker = h('select', { 'aria-label': 'Exercise', onchange: e => { exId = e.target.value; api.LS.set(exKey, exId); load(); } },
     state.exercises.filter(x => x.owner == null || x.owner === me).map(x => h('option', { value: x.id, selected: x.id === exId }, x.name)));
   mount(root,
     h('h1', {}, 'Leaderboards'),
     h('div', { class: 'tabs', role: 'tablist' }, LB_TABS.map(([k, l]) => h('a', { href: '#/ranks/' + k, class: tab === k ? 'on' : '', role: 'tab' }, l))),
     (tab === 'lift' || tab === 'progress') && picker,
+    tab === 'cardio' && h('select', { 'aria-label': 'Leaderboard', onchange: e => { cardioKey = e.target.value; api.LS.set('ft.lbCardio', cardioKey); load(); } },
+      CARDIO.map(([k, l]) => h('option', { value: k, selected: k === cardioKey }, l))),
     board);
 
   async function load() {
@@ -184,26 +195,53 @@ export async function renderRanks(root, tab = 'lift') {
       } else if (tab === 'volume') {
         rows = (await api.rpc('lb_volume', { p_since: mondayStart().toISOString() })).map(r => ({ ...r, main: fmtBig(r.volume_kg), sub: `${r.set_count} sets` }));
         note(board, 'Total weight × reps since Monday.');
+      } else if (tab === 'cardio') {
+        rows = await cardio(cardioKey);
+        note(board, cardioKey === 'fast5k' ? 'Best time from runs of about 5 km (up to 5% longer), scaled to exactly 5 km.'
+          : cardioKey === 'run_week' ? 'Total distance run since Monday.' : `Total distance ${cardioKey === 'run_month' ? 'run' : 'swum'} since the 1st of the month.`);
       } else {
         rows = await activity();
-        note(board, 'Workouts this week. Streak = weeks in a row with at least one workout.');
+        note(board, 'Sessions this week — gym workouts, runs, swims and other activities. Streak = weeks in a row with at least one.');
       }
       board.append(rows.length ? h('ol', { class: 'board' }, rows.map((r, i) => h('li', { class: r.user_id === me ? 'me' : '' },
         h('span', { class: 'rank' }, i + 1),
         h('span', { class: 'who row gap' }, avatar(profileById(r.user_id), 28), h('span', {}, '@' + r.username, r.user_id === me && h('span', { class: 'muted small' }, ' (you)'))),
         h('span', { class: 'val' }, h('strong', {}, r.main), h('span', { class: 'muted small' }, r.sub)))))
-        : h('p', { class: 'muted center' }, state.friends.length || tab !== 'activity' ? 'No data yet — go lift something!' : 'No data yet.'));
+        : h('p', { class: 'muted center' }, tab === 'cardio' ? 'Nobody has logged one yet.' : state.friends.length || tab !== 'activity' ? 'No data yet — go lift something!' : 'No data yet.'));
     } catch (e) { mount(board, h('p', { class: 'muted' }, e.message)); }
   }
   load();
 }
 const note = (el, t) => mount(el, h('p', { class: 'muted small' }, t));
 
+async function cardio(key) {
+  if (!state.friends.length) await loadFriends().catch(() => {});
+  const people = [{ id: api.userId(), username: state.profile?.username || 'me' }, ...state.friends];
+  const now = new Date();
+  const since = key === 'run_week' ? mondayStart() : new Date(now.getFullYear(), now.getMonth(), 1);
+  const kind = key.startsWith('swim') ? 'swim' : 'run';
+  const q = key === 'fast5k' ? 'kind=eq.run&distance_m=gte.4950&distance_m=lte.5250'
+    : `kind=eq.${kind}&started_at=gte.${since.toISOString()}`;
+  const rows = await api.get(`activities?${q}&select=owner,kind,distance_m,duration_s,started_at&limit=5000`);
+  return people.map(p => {
+    const mine = rows.filter(r => r.owner === p.id);
+    if (key === 'fast5k') {
+      const b = bestAt(mine, 5000);
+      return b && { user_id: p.id, username: p.username, v: b.t, main: hms(b.t), sub: new Date(b.a.started_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) };
+    }
+    const d = mine.reduce((t, r) => t + +r.distance_m, 0);
+    return d > 0 && { user_id: p.id, username: p.username, v: -d, main: fmtDist(kind, d), sub: `${mine.length} ${kind === 'run' ? 'run' : 'swim'}${mine.length > 1 ? 's' : ''}` };
+  }).filter(Boolean).sort((a, b) => a.v - b.v);
+}
+
 async function activity() {
   if (!state.friends.length) await loadFriends().catch(() => {});
   const people = [{ id: api.userId(), username: state.profile?.username || 'me' }, ...state.friends];
   const since = new Date(Date.now() - 366 * 86400000).toISOString();
-  const rows = await api.get(`workouts?ended_at=not.is.null&started_at=gte.${since}&select=owner,started_at&order=started_at.desc&limit=5000`);
+  const [ws, acts] = await Promise.all([
+    api.get(`workouts?ended_at=not.is.null&started_at=gte.${since}&select=owner,started_at&order=started_at.desc&limit=5000`),
+    api.get(`activities?started_at=gte.${since}&select=owner,started_at&order=started_at.desc&limit=5000`).catch(() => [])]);
+  const rows = [...ws, ...acts];
   const week0 = +mondayStart();
   const WEEK = 7 * 86400000;
   return people.map(p => {

@@ -471,3 +471,28 @@ svg.hm rect.sel { stroke: var(--ink); stroke-width: 2; }
 
 /* plain buttons sitting on a card or sheet get a filled look so they don't vanish into it */
 .card .btn:not(.primary):not(.dark):not(.danger):not(.ghost), .sheet .btn:not(.primary):not(.dark):not(.danger):not(.ghost) { background: var(--surface-2); box-shadow: none; }
+
+/* ---------- runs, swims & other activities (v2.1) ---------- */
+.log-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 2px; }
+.log-btn { flex-direction: column; gap: 4px; min-height: 68px; border-radius: 20px; font-size: .88rem; }
+.log-btn .ic { color: var(--accent); }
+.log-hint { margin: 8px 0 0; }
+.act-head { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.act-head .wk-title { margin-top: 0; }
+.act-ico { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; flex: none; background: var(--accent-soft); color: var(--accent); }
+.act-hero { display: flex; align-items: center; gap: 14px; margin: 4px 0 14px; }
+.act-hero .act-ico { width: 52px; height: 52px; border-radius: 16px; }
+.act-hero h1 { margin: 0; }
+.act-hero p { margin: 2px 0 0; }
+.act-form .field.compact input { text-align: center; }
+.dur { align-items: flex-end; }
+.dur .field { margin: 0; }
+.dur .field > span { text-align: center; margin-left: 0; }
+.pace-preview { min-height: 1.2em; margin: 8px 2px 0; font-weight: 700; color: var(--accent); }
+.act-form .pick-head { margin-top: 14px; }
+.act-form .chips { margin-top: 0; }
+.pb-list .pb-val { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--accent); }
+.list-link { align-items: center; }
+.sheet .list-card.flat { box-shadow: none; background: var(--surface-2); margin: 4px 0 0; }
+.sheet .list-card.flat > a + a { border-color: var(--surface-3); }
+.tiles .stat.tile strong { overflow-wrap: anywhere; }

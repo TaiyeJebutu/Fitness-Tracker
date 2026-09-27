@@ -2,12 +2,13 @@
 import * as api from './api.js';
 import { state, loadExercises, loadRoutines, METRICS, metricOk } from './store.js';
 import { h, mount, toast, sheet, confirmSheet, fmtDay } from './ui.js';
+import { activityOk } from './cardio.js';
 
 // ---------- export ---------------------------------------------------------
 export async function exportData() {
   const uid = api.userId();
   try {
-    const [profile, workouts, sets, routines, body, details, exercises] = await Promise.all([
+    const [profile, workouts, sets, routines, body, details, exercises, activities] = await Promise.all([
       api.get(`profiles?id=eq.${uid}&select=username,units,shared_metrics`, { cache: false }),
       api.getAll(`workouts?owner=eq.${uid}&select=*&order=started_at.asc`),
       api.getAll(`sets?owner=eq.${uid}&select=*&order=created_at.asc`),
@@ -15,14 +16,15 @@ export async function exportData() {
       api.getAll(`body_metrics?owner=eq.${uid}&select=*&order=measured_on.asc`),
       api.getAll(`exercise_details?user_id=eq.${uid}&select=*`),
       api.getAll(`exercises?owner=eq.${uid}&select=*`),
+      api.getAll(`activities?owner=eq.${uid}&select=*&order=started_at.asc`).catch(() => []),
     ]);
     const byWorkout = new Map();
     for (const s of sets) byWorkout.set(s.workout_id, [...(byWorkout.get(s.workout_id) || []), s]);
     const names = Object.fromEntries(state.exercises.map(x => [x.id, x.name]));
     const data = { app: 'fitness-tracker', version: 1, exported_at: new Date().toISOString(),
-      note: 'Weights in kg, lengths in cm.', profile: profile[0], exercise_names: names,
+      note: 'Weights in kg, lengths in cm, activity distances in metres and times in seconds.', profile: profile[0], exercise_names: names,
       custom_exercises: exercises, routines, workouts: workouts.map(w => ({ ...w, sets: byWorkout.get(w.id) || [] })),
-      body_metrics: body, exercise_details: details };
+      body_metrics: body, exercise_details: details, activities };
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
     const a = h('a', { href: url, download: `fitness-backup-${new Date().toISOString().slice(0, 10)}.json` });
     document.body.append(a); a.click(); a.remove();
@@ -37,7 +39,7 @@ function parseBackup(text) {
   if (!d || typeof d !== 'object' || !Array.isArray(d.workouts) || !d.exported_at)
     throw new Error('That file isn’t a backup from this app.');
   const arr = x => (Array.isArray(x) ? x : []);
-  return { ...d, routines: arr(d.routines), body_metrics: arr(d.body_metrics), exercise_details: arr(d.exercise_details),
+  return { ...d, routines: arr(d.routines), body_metrics: arr(d.body_metrics), activities: arr(d.activities), exercise_details: arr(d.exercise_details),
     custom_exercises: arr(d.custom_exercises), exercise_names: d.exercise_names || {},
     workouts: d.workouts.map(w => ({ ...w, sets: arr(w.sets) })) };
 }
@@ -55,10 +57,10 @@ async function runImport(d, mode, progress) {
   const ow = mode === 'skip' ? 'skip' : 'overwrite';
   const now = new Date().toISOString();  // every row must have the same fields for a batch write
   progress('Checking what you already have…');
-  const [myW, myR, myB] = await Promise.all([
+  const [myW, myR, myB, myA] = await Promise.all([
     api.getAll(`workouts?owner=eq.${uid}&select=id`), api.getAll(`routines?owner=eq.${uid}&select=id`),
-    api.getAll(`body_metrics?owner=eq.${uid}&select=id`)]);
-  const mine = { w: new Set(myW.map(r => r.id)), r: new Set(myR.map(r => r.id)), b: new Set(myB.map(r => r.id)) };
+    api.getAll(`body_metrics?owner=eq.${uid}&select=id`), api.getAll(`activities?owner=eq.${uid}&select=id`).catch(() => [])]);
+  const mine = { w: new Set(myW.map(r => r.id)), r: new Set(myR.map(r => r.id)), b: new Set(myB.map(r => r.id)), a: new Set(myA.map(r => r.id)) };
   // keep the id if the row is already yours; otherwise (e.g. another account's backup) use a derived one
   const idFor = async (set, id) => (set.has(id) ? id : deriveId(id, uid));
 
@@ -112,6 +114,14 @@ async function runImport(d, mode, progress) {
   const body = [];
   for (const b of d.body_metrics.filter(b => metricOk(METRICS.find(m => m.key === b.metric), b.value)))
     body.push({ id: await idFor(mine.b, b.id), owner: uid, metric: b.metric, value: b.value, measured_on: b.measured_on || now.slice(0, 10), created_at: b.created_at || now });
+  const acts = [];
+  for (const a of d.activities.filter(activityOk))
+    acts.push({ id: await idFor(mine.a, a.id), owner: uid, kind: a.kind, sport: a.kind === 'other' ? String(a.sport).trim().slice(0, 40) : null,
+      title: a.title ? String(a.title).slice(0, 80) : null, started_at: a.started_at || now, duration_s: Math.round(+a.duration_s),
+      distance_m: a.distance_m == null ? null : +a.distance_m, feel: [1, 2, 3, 4, 5].includes(a.feel) ? a.feel : null,
+      pool: ['25m', '50m', '25yd', 'open'].includes(a.pool) ? a.pool : null,
+      stroke: ['freestyle', 'breaststroke', 'backstroke', 'butterfly', 'mixed'].includes(a.stroke) ? a.stroke : null,
+      notes: a.notes ? String(a.notes).slice(0, 1000) : null, created_at: a.created_at || now });
   const details = d.exercise_details.filter(x => exMap.get(x.exercise_id)).map(x => ({
     user_id: uid, exercise_id: exMap.get(x.exercise_id), machine_brand: x.machine_brand ?? null, machine_model: x.machine_model ?? null,
     seat_height: x.seat_height ?? null, adjustments: x.adjustments || [], notes: x.notes ?? null, unilateral: !!x.unilateral, updated_at: x.updated_at || now }));
@@ -120,24 +130,26 @@ async function runImport(d, mode, progress) {
     progress('Clearing your current data…');
     await Promise.all([
       api.removeNow('workouts', `owner=eq.${uid}`), api.removeNow('routines', `owner=eq.${uid}`),
-      api.removeNow('body_metrics', `owner=eq.${uid}`), api.removeNow('exercise_details', `user_id=eq.${uid}`)]);
+      api.removeNow('body_metrics', `owner=eq.${uid}`), api.removeNow('exercise_details', `user_id=eq.${uid}`),
+      api.removeNow('activities', `owner=eq.${uid}`)]);
   }
   progress('Adding exercises…');   await api.bulkUpsert('exercises', newExercises, 'skip');
   progress('Adding routines…');    await api.bulkUpsert('routines', routines, ow);
   progress('Adding workouts…');    await api.bulkUpsert('workouts', workouts, ow);
   progress(`Adding ${sets.length} sets…`); await api.bulkUpsert('sets', sets, ow);
   progress('Adding body stats…');  await api.bulkUpsert('body_metrics', body, ow);
+  if (acts.length) { progress('Adding runs, swims & activities…'); await api.bulkUpsert('activities', acts, ow); }
   progress('Adding exercise settings…'); await api.bulkUpsert('exercise_details', details, ow, 'user_id,exercise_id');
   Object.keys(localStorage).filter(k => k.startsWith('ft.cache.') || k.startsWith('ft.details.')).forEach(k => api.LS.del(k));
   await Promise.all([loadExercises(), loadRoutines()]).catch(() => {});
-  return { workouts: workouts.length, sets: sets.length, routines: routines.length, body: body.length, details: details.length, newExercises: newExercises.length };
+  return { workouts: workouts.length, sets: sets.length, routines: routines.length, body: body.length, activities: acts.length, details: details.length, newExercises: newExercises.length };
 }
 
 // ---------- import: screen --------------------------------------------------
 const MODES = [
   ['skip', 'Keep what I have', 'Adds anything missing and leaves your existing items alone. Safe to run the same file twice.'],
   ['overwrite', 'Backup wins', 'Adds anything missing, and items in the backup replace your current versions of them.'],
-  ['replace', 'Replace everything', 'Deletes all your current workouts, routines, body stats and exercise settings, then restores the backup.'],
+  ['replace', 'Replace everything', 'Deletes all your current workouts, runs, swims, routines, body stats and exercise settings, then restores the backup.'],
 ];
 
 export function importData() {
@@ -164,13 +176,13 @@ function showImportSheet(d, fileName) {
     const go = h('button', { class: 'btn primary block', onclick: async () => {
       if (finished) { close(); location.hash = '#/'; return; }
       if (mode === 'replace' && !(await confirmSheet('Replace everything?',
-        'All your current workouts, routines, body stats and exercise settings will be deleted and replaced with this backup. This can’t be undone — consider exporting first.', 'Replace')))
+        'All your current workouts, activities, routines, body stats and exercise settings will be deleted and replaced with this backup. This can’t be undone — consider exporting first.', 'Replace')))
         return;
       go.disabled = true; radios.querySelectorAll('input').forEach(i => (i.disabled = true));
       try {
         const r = await runImport(d, mode, t => (status.textContent = t));
         mount(status, h('strong', {}, 'Import complete. '),
-          `${r.workouts} workouts (${r.sets} sets), ${r.routines} routines, ${r.body} body entries, ${r.details} exercise settings` +
+          `${r.workouts} workouts (${r.sets} sets), ${r.routines} routines, ${r.body} body entries, ${r.activities} runs, swims & activities, ${r.details} exercise settings` +
           (r.newExercises ? `, ${r.newExercises} custom exercises added.` : '.'));
         finished = true; go.textContent = 'Done'; go.disabled = false;
         toast('Import complete');
@@ -190,6 +202,7 @@ function showImportSheet(d, fileName) {
         h('li', {}, `${d.workouts.length} workouts (${setCount} sets)${dates.length ? `, ${fmtDay(dates[0])} – ${fmtDay(dates[dates.length - 1])}` : ''}`),
         h('li', {}, `${d.routines.length} routines`),
         h('li', {}, `${d.body_metrics.length} body stat entries`, badBody ? ` (${badBody} outside the allowed range will be skipped)` : ''),
+        d.activities.length > 0 && h('li', {}, `${d.activities.length} runs, swims & activities`),
         h('li', {}, `${d.exercise_details.length} exercise settings`)),
       h('h2', {}, 'If something already exists'),
       radios, status, go);

@@ -4,6 +4,7 @@ import { state, exName, loadRoutines, saveRoutine } from './store.js';
 import { active, startWorkout, pickExercise, editDetails, detailsSummary, exerciseForm, newExerciseSheet } from './workout.js';
 import { details, setUnilateral, updateExercise, deleteExercise, CATEGORIES } from './store.js';
 import { avatar } from './avatar.js';
+import { logActivity, activityCard, loadActivities, KINDS } from './cardio.js';
 import { h, mount, toast, sheet, confirmSheet, fmtW, fmtDate, fmtDay, duration, ago, spinner, lineChart, e1rm, toW, wUnit, ic } from './ui.js';
 
 // ---------- Train home ---------------------------------------------------
@@ -16,6 +17,9 @@ export async function renderTrain(root) {
         h('strong', {}, 'Workout in progress'), h('span', { class: 'muted small' }, `${a.name} · started ${ago(a.started_at)}`),
         h('span', { class: 'btn primary small' }, 'Resume')),
       !a && h('button', { class: 'btn primary block big', onclick: () => startWorkout(null) }, ic('play', 20), 'Start empty workout'),
+      h('div', { class: 'log-row' }, ['run', 'swim', 'other'].map(k => h('button', { class: 'btn log-btn', onclick: () => logActivity(k) },
+        ic(KINDS[k].icon, 20), h('span', {}, k === 'other' ? 'Other' : KINDS[k].label)))),
+      h('p', { class: 'muted small center log-hint' }, 'Log a run, swim or other activity after you’ve done it.'),
       h('div', { class: 'section-head' }, h('h2', {}, 'Routines'), h('a', { class: 'btn small', href: '#/routine/new' }, ic('plus', 18), 'New')),
       state.routines.length ? state.routines.map(r => h('div', { class: 'card routine' },
         h('a', { class: 'routine-info', href: '#/routine/' + r.id },
@@ -29,13 +33,20 @@ export async function renderTrain(root) {
   const recent = h('div', {}, spinner());
   draw();
   loadRoutines().then(draw).catch(() => {});
-  history(5).then(list => mount(recent, list.length ? list.map(workoutCard) : h('p', { class: 'muted' }, 'No workouts yet.')))
+  combined(5).then(list => mount(recent, list.length ? list.map(x => x.el) : h('p', { class: 'muted' }, 'Nothing logged yet.')))
     .catch(e => mount(recent, h('p', { class: 'muted' }, e.message)));
 }
 
 async function history(limit = 50) {
   const uid = api.userId();
   return api.get(`workouts?owner=eq.${uid}&ended_at=not.is.null&select=id,name,started_at,ended_at,sets(exercise_id,reps,weight_kg,side)&order=started_at.desc&limit=${limit}`);
+}
+
+/** Your gym workouts and activities together, newest first: [{ at, el }] */
+async function combined(limit) {
+  const [ws, acts] = await Promise.all([history(limit), loadActivities(api.userId(), { limit })]);
+  return [...ws.map(w => ({ at: w.started_at, el: workoutCard(w) })), ...acts.map(x => ({ at: x.started_at, el: activityCard(x) }))]
+    .sort((x, y) => new Date(y.at) - new Date(x.at)).slice(0, limit);
 }
 
 export function workoutCard(wk, who, prof) {
@@ -62,8 +73,8 @@ export function workoutCard(wk, who, prof) {
 export async function renderHistory(root) {
   mount(root, h('h1', {}, 'History'), spinner());
   try {
-    const list = await history(100);
-    mount(root, h('h1', {}, 'History'), list.length ? list.map(w => workoutCard(w)) : h('p', { class: 'muted' }, 'No workouts yet.'));
+    const list = await combined(150);
+    mount(root, h('h1', {}, 'History'), list.length ? list.map(x => x.el) : h('p', { class: 'muted' }, 'Nothing logged yet.'));
   } catch (e) { mount(root, h('h1', {}, 'History'), h('p', { class: 'muted' }, e.message)); }
 }
 
