@@ -15,7 +15,7 @@ export const TOPICS = [
       'Open it from the new icon from then on.'] },
   { id: 'tabs', section: 'Getting started', title: 'Finding your way around', keywords: 'tabs menu navigation bottom bar',
     body: ['The bar at the bottom has five tabs:',
-      { steps: ['Train: start workouts, your routines and recent workouts.', 'Friends: your friends’ workouts and badges, and friend requests.', 'Ranks: leaderboards for you and your friends.', 'Body: bodyweight and measurements.', 'Me: your profile, avatar, badges, exercises, settings, backup and feedback.'] },
+      { steps: ['Home: your dashboard — streak, activity grid, this week, trends, records, badges and bodyweight (tap it for all body stats).', 'Train: start workouts, your routines and recent workouts.', 'Friends: your friends’ workouts and badges, and friend requests.', 'Ranks: leaderboards for you and your friends.', 'Me: your profile, avatar, badges, exercises, settings, backup and feedback.'] },
       { tip: 'The ? button at the top opens help for the screen you’re on.' }] },
   { id: 'offline', section: 'Getting started', title: 'Using it with no signal', keywords: 'offline internet wifi signal sync upload gym basement',
     body: ['You can log a whole workout with no signal. Everything is saved on your phone and uploads automatically when you’re back online.',
@@ -23,9 +23,18 @@ export const TOPICS = [
       { tip: 'Don’t sign out while changes are waiting to upload — they’d be lost.' },
       'A few things need a connection: friends, leaderboards, the feedback board, and importing a backup.'] },
 
+  { id: 'dashboard', section: 'Getting started', title: 'Your Home dashboard', keywords: 'home dashboard stats streak this week trends volume records pr body areas', screens: [''],
+    body: ['Home is your dashboard. From top to bottom:',
+      { steps: ['Streak — how many weeks in a row you’ve trained.', 'Activity — a grid of every day (see “The activity grid”).', 'This week — workouts, sets, volume and time, compared with the same point last week.', 'Trends — your weekly volume for the last 12 weeks (tap a column for its value), and which body areas you trained in the last 30 days.', 'Recent personal records — sets that beat your previous best estimated 1-rep max.', 'Badges — your latest ones and progress to the next workout milestone.', 'Body — your latest bodyweight with a mini trend. Tap it, or “All body stats”, to open Body.'] }] },
+  { id: 'activity-grid', section: 'Getting started', title: 'The activity grid', keywords: 'activity grid heatmap calendar days github squares consistency', screens: [],
+    body: ['The grid shows the last year, one square per day (Monday at the top), with the newest week on the right — swipe sideways to see earlier months.',
+      'Darker squares mean more sets that day. The shades are based on your own training, so they adapt as you get busier.',
+      { tip: 'Tap a square to see that day’s workouts, and tap a workout to open it.' },
+      'Friends can see your grid on your friend page. To hide it, switch off “Friends can see my activity grid” under Me → Privacy.'] },
+
   // ---------- Workouts ----------
-  { id: 'start-workout', section: 'Workouts', title: 'Start a workout', keywords: 'begin train empty session', screens: [''],
-    body: [{ steps: ['Go to Train.', 'Tap “Start” next to a routine — its exercises are filled in for you — or “Start empty workout” to add exercises as you go.', 'Use “＋ Add exercise” to add more. Search, filter by body area, or type a new name to create one.'] },
+  { id: 'start-workout', section: 'Workouts', title: 'Start a workout', keywords: 'begin train empty session', screens: ['train'],
+    body: [{ steps: ['Go to Train (or tap “Start a workout” on Home).', 'Tap “Start” next to a routine — its exercises are filled in for you — or “Start empty workout” to add exercises as you go.', 'Use “＋ Add exercise” to add more. Search, filter by body area, or type a new name to create one.'] },
       'If you leave the app mid-workout, the Train tab changes to “Workout” and a “Resume” card takes you back.'] },
   { id: 'log-sets', section: 'Workouts', title: 'Log sets (and “Last” numbers)', keywords: 'set reps weight tick log previous last time prefill', screens: ['workout'],
     body: ['Each exercise has a row per set: weight, reps and a ✓ button.',
@@ -66,7 +75,8 @@ export const TOPICS = [
   // ---------- Body ----------
   { id: 'body-stats', section: 'Body stats', title: 'Track bodyweight & measurements', keywords: 'bodyweight weight measurement waist chest body fat chart', screens: ['body'],
     body: [{ steps: ['Open Body and pick a stat from the chips at the top.', 'Enter the value and date, then tap Add.'] },
-      'The chart shows your trend — tap or drag on it to see values. Tap ✕ on an entry to delete it.'] },
+      'The chart shows your trend — tap or drag on it to see values. Tap ✕ on an entry to delete it.',
+      'Body lives inside Home: tap the bodyweight card or “All body stats”.'] },
   { id: 'body-sharing', section: 'Body stats', title: 'Choose what friends can see', keywords: 'privacy share private friends see body', screens: ['body'],
     body: ['Every body stat is private until you switch on “Friends can see” for that stat. You can share bodyweight but keep your waist private, for example. Friends see shared stats on your friend page.'] },
 
@@ -124,6 +134,11 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '1.5.0', date: '2026-09-27', items: [
+    'New Home dashboard: your streak, a GitHub-style activity grid, this week vs last week, weekly volume, body areas trained, recent personal records, badges and bodyweight.',
+    'Tap any day in the activity grid to see what you did.',
+    'Friends can see your activity grid (switch it off under Me → Privacy).',
+    'Tabs are now Home · Train · Friends · Ranks · Me — Body stats open from Home.'] },
   { version: '1.4.0', date: '2026-09-25', items: [
     'Help & guide: tap ? at the top of any screen for help with that screen, or search all topics.',
     'A “What’s new” card like this one appears once after each update.'] },

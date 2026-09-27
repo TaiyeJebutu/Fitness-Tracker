@@ -9,6 +9,7 @@ import { exportData, importData } from './backup.js';
 import { avatar, editAvatar } from './avatar.js';
 import { renderFeedback, renderPost } from './feedback.js';
 import { renderHelp, helpHref, maybeShowWhatsNew } from './help.js';
+import { renderHome, setShareActivity } from './home.js';
 import { renderBadges, checkBadges, earnedBy, badgeStrip, TOTAL } from './badges.js';
 
 const app = document.getElementById('app');
@@ -18,7 +19,7 @@ const syncDot = h('span', { class: 'sync', title: '' });
 const helpBtn = h('button', { class: 'icon-btn help-btn', 'aria-label': 'Help for this screen', title: 'Help', onclick: () => { location.hash = helpHref(); } }, '?');
 const updateBar = h('button', { class: 'update-banner', hidden: true, onclick: applyUpdate });
 
-const NAV = [['#/', 'Train', '🏋️'], ['#/feed', 'Friends', '👥'], ['#/ranks', 'Ranks', '🏆'], ['#/body', 'Body', '📏'], ['#/me', 'Me', '⚙️']];
+const NAV = [['#/', 'Home', '🏠'], ['#/train', 'Train', '🏋️'], ['#/feed', 'Friends', '👥'], ['#/ranks', 'Ranks', '🏆'], ['#/me', 'Me', '⚙️']];
 const nav = h('nav', { class: 'tabbar', 'aria-label': 'Main' },
   NAV.map(([href, label, icon]) => h('a', { href, 'data-tab': href }, h('span', { class: 'ico', 'aria-hidden': 'true' }, icon), h('span', {}, label))));
 
@@ -30,10 +31,10 @@ async function route() {
   const [, a = '', b] = (location.hash || '#/').slice(1).split('/');
   nav.querySelectorAll('a').forEach(x => {
     const t = x.dataset.tab.slice(2);
-    x.classList.toggle('on', t === a || (t === '' && ['', 'workout', 'routine', 'history', 'exercise'].includes(a)) || (t === 'feed' && ['friends', 'friend'].includes(a))
+    x.classList.toggle('on', t === a || (t === '' && a === 'body') || (t === 'train' && ['workout', 'routine', 'history', 'exercise'].includes(a)) || (t === 'feed' && ['friends', 'friend'].includes(a))
       || (t === 'me' && ((a === 'badges' && !b) || a === 'exercises' || a === 'feedback')) || (t === 'feed' && a === 'badges' && !!b));
   });
-  nav.querySelector('a[data-tab="#/"] span:last-child').textContent = active() ? 'Workout' : 'Train';
+  nav.querySelector('a[data-tab="#/train"] span:last-child').textContent = active() ? 'Workout' : 'Train';
   window.scrollTo(0, 0);
   // close pop-ups that belong to a different screen (e.g. after pressing Back)
   document.querySelectorAll('.sheet-wrap').forEach(x => x.dataset.screen !== (location.hash || '#/') && x.remove());
@@ -42,7 +43,8 @@ async function route() {
   mount(view, page);
   try {
     switch (a) {
-      case '': return await renderTrain(page);
+      case '': return await renderHome(page);
+      case 'train': return await renderTrain(page);
       case 'workout': return renderWorkout(page);
       case 'routine': return await renderRoutine(page, b);
       case 'history': return b ? await renderWorkoutDetail(page, b) : await renderHistory(page);
@@ -143,6 +145,12 @@ function renderMe(root) {
         h('button', { class: 'btn', type: 'submit' }, 'Rename'))),
     badgesCard,
     appearanceCard(root),
+    h('section', { class: 'card' },
+      h('strong', {}, 'Privacy'),
+      h('label', { class: 'switch', style: { marginTop: '8px' } },
+        h('input', { type: 'checkbox', checked: p.share_activity !== false, onchange: e => setShareActivity(e.target.checked) }),
+        h('span', {}, 'Friends can see my activity grid')),
+      h('p', { class: 'muted small' }, 'Body stats have their own switches on the Body screen.')),
     h('section', { class: 'card' },
       h('strong', {}, 'Units'),
       h('div', { class: 'seg', role: 'group', 'aria-label': 'Units' },

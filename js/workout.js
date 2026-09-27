@@ -15,7 +15,7 @@ export async function startWorkout(routine) {
     id: api.uuid(), name: routine?.name || 'Workout', routine_id: routine?.id || null,
     started_at: new Date().toISOString(), items: [],
   };
-  for (const it of routine?.items || []) w.items.push(newItem(it.exercise_id, it.rest, it.sets, it.reps));
+  for (const it of routine?.items || []) w.items.push(newItem(it.exercise_id, it.rest, it.sets, it.reps, knownUni(it.exercise_id)));
   save(w);
   api.upsert('workouts', { id: w.id, name: w.name, routine_id: w.routine_id, started_at: w.started_at, owner: api.userId() });
   location.hash = '#/workout';
@@ -37,6 +37,8 @@ function layout(it, count, uni) {
     for (const side of SIDES(uni)) it.sets.push({ id: api.uuid(), set_no: n, side, reps: it.targetReps || null, weight_kg: null, done: false });
 }
 const setCount = it => new Set(it.sets.map(s => s.set_no)).size;
+/** Left/right setting this phone already knows about (so rows appear correctly straight away). */
+const knownUni = id => !!api.LS.get('ft.details.' + id)?.unilateral;
 const label = s => s.set_no + (s.side || '');
 
 /** Last time's numbers for this row: same side and set number if possible. */
@@ -100,7 +102,7 @@ async function discard(w, skipConfirm) {
   if (!skipConfirm && !(await confirmSheet('Discard workout?', 'Everything logged in this workout will be deleted.', 'Discard'))) return;
   api.remove('workouts', 'id=eq.' + w.id);
   api.LS.del(AKEY); stopRest();
-  location.hash = '#/';
+  location.hash = '#/train';
 }
 
 // ---------- rest timer ---------------------------------------------------
@@ -265,7 +267,7 @@ const detailCache = new Map();
 export function renderWorkout(root) {
   const w = active();
   if (!w) {
-    mount(root, h('div', { class: 'empty' }, h('p', {}, 'No workout in progress.'), h('a', { class: 'btn primary', href: '#/' }, 'Go to Train')));
+    mount(root, h('div', { class: 'empty' }, h('p', {}, 'No workout in progress.'), h('a', { class: 'btn primary', href: '#/train' }, 'Go to Train')));
     return;
   }
   const rerender = () => renderWorkout(root);
@@ -365,7 +367,7 @@ export function renderWorkout(root) {
     cards,
     !w.items.length && h('p', { class: 'muted center' }, 'Add your first exercise to get started.'),
     h('button', { class: 'btn block', onclick: () => pickExercise(ex => {
-      const cur = upd(c => c.items.push(newItem(ex.id)));
+      const cur = upd(c => c.items.push(newItem(ex.id, 90, 3, null, knownUni(ex.id))));
       rerender(); fillPrev(cur); }) }, '＋ Add exercise'),
     h('label', { class: 'field' }, h('span', {}, 'Workout notes'),
       h('textarea', { rows: 2, placeholder: 'How did it feel?', oninput: e => upd(c => (c.notes = e.target.value)) }, w.notes || '')),

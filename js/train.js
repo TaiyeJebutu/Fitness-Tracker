@@ -71,7 +71,7 @@ export async function renderWorkoutDetail(root, id) {
   if (!wk) {
     // may still be waiting to sync
     mount(root, h('p', { class: 'muted' }, api.pendingCount() ? 'This workout is saved on your phone and will appear once it syncs.' : 'Workout not found.'),
-      h('a', { class: 'btn', href: '#/' }, 'Back'));
+      h('a', { class: 'btn', href: '#/train' }, 'Back'));
     return;
   }
   const mine = wk.owner === api.userId();
@@ -96,7 +96,7 @@ export async function renderWorkoutDetail(root, id) {
 export async function renderRoutine(root, id) {
   if (!state.routines.length) await loadRoutines().catch(() => {});
   const existing = state.routines.find(r => r.id === id);
-  if (id !== 'new' && !existing) { mount(root, h('p', { class: 'muted' }, 'Routine not found.'), h('a', { class: 'btn', href: '#/' }, 'Back')); return; }
+  if (id !== 'new' && !existing) { mount(root, h('p', { class: 'muted' }, 'Routine not found.'), h('a', { class: 'btn', href: '#/train' }, 'Back')); return; }
   const r = existing ? JSON.parse(JSON.stringify(existing)) : { id: api.uuid(), name: '', items: [] };
   const list = h('div', {});
   const uni = new Map();   // exercise id -> left/right setting (per exercise, shared everywhere)
@@ -120,7 +120,7 @@ export async function renderRoutine(root, id) {
   draw();
   loadUni(r.items.map(i => i.exercise_id)).then(draw);
   mount(root,
-    h('a', { class: 'back', href: '#/' }, '‹ Back'),
+    h('a', { class: 'back', href: '#/train' }, '‹ Back'),
     h('h1', {}, existing ? 'Edit routine' : 'New routine'),
     h('label', { class: 'field' }, h('span', {}, 'Name'),
       h('input', { value: r.name, placeholder: 'e.g. Push day', oninput: e => (r.name = e.target.value), 'data-noautofocus': '1' })),
@@ -128,11 +128,11 @@ export async function renderRoutine(root, id) {
     h('button', { class: 'btn block', onclick: () => pickExercise(async ex => { r.items.push({ exercise_id: ex.id, sets: 3, reps: 10, rest: 90 }); draw(); await loadUni([ex.id]); draw(); }) }, '＋ Add exercise'),
     h('button', { class: 'btn primary block', onclick: () => {
       if (!r.name.trim()) return toast('Give the routine a name', 'err');
-      saveRoutine({ id: r.id, name: r.name.trim(), items: r.items }); toast('Routine saved'); location.hash = '#/'; } }, 'Save routine'),
+      saveRoutine({ id: r.id, name: r.name.trim(), items: r.items }); toast('Routine saved'); location.hash = '#/train'; } }, 'Save routine'),
     existing && h('button', { class: 'btn danger ghost block', onclick: async () => {
       if (!(await confirmSheet('Delete routine?', `“${r.name}” will be deleted. Past workouts are kept.`))) return;
       api.remove('routines', 'id=eq.' + r.id); state.routines = state.routines.filter(x => x.id !== r.id);
-      toast('Deleted'); location.hash = '#/'; } }, 'Delete routine'));
+      toast('Deleted'); location.hash = '#/train'; } }, 'Delete routine'));
 }
 function num(label, value, set, step = 1) {
   return h('label', { class: 'field compact' }, h('span', {}, label),

@@ -49,7 +49,7 @@ export const exName = id => state.exById.get(id)?.name || 'Unknown exercise';
 export async function loadFriends() {
   const uid = api.userId();
   const rows = await api.get('friendships?select=requester,addressee,status,created_at,' +
-    'req:profiles!friendships_requester_fkey(id,username,avatar_icon,avatar_color),adr:profiles!friendships_addressee_fkey(id,username,avatar_icon,avatar_color)');
+    'req:profiles!friendships_requester_fkey(id,username,avatar_icon,avatar_color,share_activity),adr:profiles!friendships_addressee_fkey(id,username,avatar_icon,avatar_color,share_activity)');
   state.friendRows = rows || [];
   state.friends = state.friendRows.filter(r => r.status === 'accepted')
     .map(r => (r.requester === uid ? r.adr : r.req)).filter(Boolean)
@@ -94,7 +94,11 @@ export async function details(exerciseId) {
   const uid = api.userId();
   const path = `exercise_details?user_id=eq.${uid}&exercise_id=eq.${exerciseId}&select=*`;
   const local = api.LS.get('ft.details.' + exerciseId);
-  try { const r = await api.get(path); return r?.[0] || local || null; }
+  try {
+    const r = await api.get(path);
+    if (r?.[0] && !api.pendingCount()) api.LS.set('ft.details.' + exerciseId, r[0]);   // remember for instant, offline layout
+    return r?.[0] || local || null;
+  }
   catch { return local || api.cached(path)?.[0] || null; }
 }
 

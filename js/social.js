@@ -4,6 +4,7 @@ import { state, loadFriends, loadExercises, exName, saveRoutine, METRICS } from 
 import { workoutCard, stat } from './train.js';
 import { avatar, profileById } from './avatar.js';
 import { checkBadges, earnedBy, badgeStrip, badgeFeedItems } from './badges.js';
+import { activityData, perDay, activityGrid } from './home.js';
 import { h, mount, toast, confirmSheet, spinner, fmtW, fmtL, fmtBig, mondayStart, lineChart, toW, wUnit, currentPage } from './ui.js';
 
 // ---------- Feed + friends ----------------------------------------------
@@ -98,6 +99,9 @@ export async function renderFriend(root, id) {
     api.get(`workouts?owner=eq.${id}&ended_at=not.is.null&select=id,name,started_at,ended_at,sets(exercise_id,reps,weight_kg,side)&order=started_at.desc&limit=5`).catch(() => []),
     earnedBy(id),
   ]);
+  const grid = h('div', {});
+  if (f.share_activity !== false)
+    activityData(id).then(d => mount(grid, h('h2', {}, 'Activity'), h('section', { class: 'card' }, activityGrid(perDay(d))))).catch(() => {});
   if ([...routines.flatMap(r => r.items), ...recent.flatMap(w => w.sets)].some(x => !state.exById.has(x.exercise_id))) await loadExercises().catch(() => {});
   const byMetric = new Map();
   for (const m of metrics) byMetric.set(m.metric, [...(byMetric.get(m.metric) || []), m]);
@@ -107,6 +111,7 @@ export async function renderFriend(root, id) {
     h('div', { class: 'row gap' }, avatar(f, 52), h('h1', {}, '@' + f.username)),
     h('div', { class: 'section-head' }, h('h2', {}, `Badges (${earned.length})`), h('a', { class: 'btn small ghost', href: '#/badges/' + f.id }, 'See all')),
     badgeStrip(earned, 8),
+    grid,
     h('h2', {}, 'Routines'),
     routines.length ? routines.map(r => h('div', { class: 'card routine' },
       h('div', { class: 'routine-info' }, h('strong', {}, r.name), h('span', { class: 'muted small' }, r.items.map(i => exName(i.exercise_id)).join(', '))),

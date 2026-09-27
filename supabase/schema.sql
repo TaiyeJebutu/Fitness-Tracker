@@ -523,3 +523,10 @@ end $$;
 revoke all on function public.set_feedback_status(uuid, text) from public, anon;
 grant execute on function public.set_feedback_status(uuid, text) to authenticated;
 grant execute on function public.is_admin() to authenticated;
+
+
+-- =====================================================================
+-- v1.5 additions (same as upgrade-1.5.sql)
+-- =====================================================================
+alter table public.profiles add column if not exists share_activity boolean not null default true;
+grant update (username, units, shared_metrics, avatar_icon, avatar_color, share_activity) on public.profiles to authenticated;
