@@ -485,14 +485,11 @@ create policy "fb read" on public.feedback_posts for select to authenticated usi
 -- New posts are yours and start as "open".
 create policy "fb add"  on public.feedback_posts for insert to authenticated
   with check (author = auth.uid() and status = 'open');
--- Authors can edit their own title/text (status is changed only via set_feedback_status).
-create policy "fb edit" on public.feedback_posts for update to authenticated
-  using (author = auth.uid()) with check (author = auth.uid());
+-- Posts can't be edited once posted (no update policy or grant). Status changes only via set_feedback_status.
 create policy "fb del"  on public.feedback_posts for delete to authenticated
   using (author = auth.uid() or public.is_admin());
 revoke all on public.feedback_posts from anon, authenticated;
 grant select, insert, delete on public.feedback_posts to authenticated;
-grant update (kind, title, body, updated_at) on public.feedback_posts to authenticated;
 
 drop policy if exists "vote read" on public.feedback_votes;
 drop policy if exists "vote add"  on public.feedback_votes;

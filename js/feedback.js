@@ -56,7 +56,7 @@ export async function renderFeedback(root) {
   mount(root,
     h('a', { class: 'back', href: '#/me' }, ic('back', 18), 'Me'),
     h('div', { class: 'section-head' }, h('h1', {}, 'Feedback'),
-      h('button', { class: 'btn primary small', onclick: () => editPost(null) }, ic('plus', 18), 'New post')),
+      h('button', { class: 'btn primary small', onclick: () => newPost() }, ic('plus', 18), 'New post')),
     h('p', { class: 'muted small' }, 'Suggest features and report bugs. Everyone using the app can see and upvote posts.'),
     seg('kind', [['all', 'All'], ['feature', '💡 Features'], ['bug', '🐞 Bugs']], 'Type'),
     h('div', { class: 'row gap fb-filters' },
@@ -79,16 +79,16 @@ export async function renderFeedback(root) {
         h('strong', { class: 'fb-title' }, p.title),
         h('div', { class: 'tags' }, kindTag(p.kind), statusTag(p.status)),
         h('div', { class: 'muted small row gap' }, avatar(p.author_profile, 18), `@${p.author_profile?.username || '?'} · ${ago(p.created_at)} · 💬 ${p.comments}`))))
-      : h('div', { class: 'empty' }, h('p', { class: 'muted' }, 'Nothing here yet.'), h('button', { class: 'btn primary', onclick: () => editPost(null) }, 'Be the first to post')));
+      : h('div', { class: 'empty' }, h('p', { class: 'muted' }, 'Nothing here yet.'), h('button', { class: 'btn primary', onclick: () => newPost() }, 'Be the first to post')));
   } catch (e) {
     mount(listEl, h('p', { class: 'muted' }, e.network ? 'The feedback board needs an internet connection.' : e.message));
   }
 }
 
-// ---------- create / edit ----------------------------------------------------
-function editPost(post) {
-  const f = { kind: post?.kind || 'feature', title: post?.title || '', body: post?.body || '' };
-  sheet(post ? 'Edit post' : 'New post', close => {
+// ---------- new post (posts can't be edited once posted; authors can still delete) ----------
+function newPost() {
+  const f = { kind: 'feature', title: '', body: '' };
+  sheet('New post', close => {
     const err = h('p', { class: 'error', role: 'alert' });
     const body = h('textarea', { rows: 6, maxlength: 4000, oninput: e => (f.body = e.target.value) }, f.body);
     const hint = h('p', { class: 'muted small' });
@@ -97,30 +97,26 @@ function editPost(post) {
       mount(kinds, Object.entries(KIND).map(([k, [icon, label]]) => h('button', { type: 'button', role: 'radio', class: f.kind === k ? 'on' : '',
         'aria-checked': String(f.kind === k), onclick: () => { f.kind = k; paint(); } }, `${icon} ${label}`)));
       body.placeholder = f.kind === 'bug' ? 'What happened? What did you expect? Steps to make it happen again…' : 'What would you like, and why would it help?';
-      hint.textContent = f.kind === 'bug' && !post ? `Your app version (v${window.APP_VERSION}) and device type are added automatically to help fix it.` : '';
+      hint.textContent = f.kind === 'bug' ? `Your app version (v${window.APP_VERSION}) and device type are added automatically to help fix it.` : '';
     };
     paint();
-    const btn = h('button', { class: 'btn primary block', type: 'submit' }, post ? 'Save' : 'Post');
+    const btn = h('button', { class: 'btn primary block', type: 'submit' }, 'Post');
     return h('form', { onsubmit: async e => {
       e.preventDefault(); err.textContent = '';
       if (f.title.trim().length < 3) return (err.textContent = 'Give it a short title (at least 3 characters)');
       btn.disabled = true;
       try {
-        if (post) {
-          await api.patch('feedback_posts', 'id=eq.' + post.id, { kind: f.kind, title: f.title.trim(), body: f.body.trim(), updated_at: new Date().toISOString() });
-          toast('Saved'); close(); renderPost(document.querySelector('#view > .page'), post.id);
-        } else {
-          const [row] = await api.insertNow('feedback_posts', { author: api.userId(), kind: f.kind, title: f.title.trim(), body: f.body.trim(),
-            app_version: window.APP_VERSION, device: f.kind === 'bug' ? device() : null });
-          await api.insertNow('feedback_votes', { post_id: row.id, user_id: api.userId() }).catch(() => {});  // you upvote your own post
-          toast('Posted — thanks!'); close(); location.hash = '#/feedback/' + row.id;
-        }
+        const [row] = await api.insertNow('feedback_posts', { author: api.userId(), kind: f.kind, title: f.title.trim(), body: f.body.trim(),
+          app_version: window.APP_VERSION, device: f.kind === 'bug' ? device() : null });
+        await api.insertNow('feedback_votes', { post_id: row.id, user_id: api.userId() }).catch(() => {});  // you upvote your own post
+        toast('Posted — thanks!'); close(); location.hash = '#/feedback/' + row.id;
       } catch (x) { err.textContent = x.network ? 'You’re offline — try again when you have signal.' : x.message; btn.disabled = false; }
     } },
       kinds,
       h('label', { class: 'field' }, h('span', {}, 'Title'),
         h('input', { value: f.title, maxlength: 120, placeholder: 'Short summary', oninput: e => (f.title = e.target.value) })),
       h('label', { class: 'field' }, h('span', {}, 'Details'), body),
+      h('p', { class: 'muted small' }, 'Posts can’t be edited once they’re posted, so check it over first. You can still delete your own post.'),
       hint, err, btn);
   });
 }
@@ -162,7 +158,6 @@ export async function renderPost(root, id) {
     p.kind === 'bug' && (p.app_version || p.device) && h('p', { class: 'muted small' }, `Reported on v${p.app_version || '?'}${p.device ? ' · ' + p.device : ''}`),
     statusControl,
     (isAuthor || owner) && h('div', { class: 'row gap' },
-      isAuthor && h('button', { class: 'btn small', onclick: () => editPost(p) }, 'Edit'),
       h('button', { class: 'btn small danger ghost', onclick: async () => {
         if (!(await confirmSheet('Delete this post?', 'Its votes and comments will be deleted too.'))) return;
         try { await api.removeNow('feedback_posts', 'id=eq.' + id); toast('Deleted'); location.hash = '#/feedback'; } catch (x) { toast(x.message, 'err'); }

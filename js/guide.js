@@ -123,7 +123,7 @@ export const TOPICS = [
   // ---------- Feedback ----------
   { id: 'feedback', section: 'Feedback', title: 'Request a feature or report a bug', keywords: 'feedback feature request bug report idea vote comment', screens: ['feedback'],
     body: ['Me → Feature requests & bug reports is a board everyone using the app can see.',
-      { steps: ['Tap “+ New post”, pick Feature request or Bug report, add a title and details.', 'Upvote posts you agree with (▲) and add comments.', 'Filter by type, sort by Top or New, and show Active or Closed posts.'] },
+      { steps: ['Tap “+ New post”, pick Feature request or Bug report, add a title and details. Check it over before posting — posts can’t be edited afterwards (you can still delete your own post or comment).', 'Upvote posts you agree with (▲) and add comments.', 'Filter by type, sort by Top or New, and show Active or Closed posts.'] },
       'Bug reports include your app version and device type automatically. The app owner sets each post’s status: Open, Planned, In progress, Done or Won’t do.'] },
 
   // ---------- Troubleshooting ----------
@@ -135,6 +135,8 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '2.0.1', date: '2026-09-27', items: [
+    'Feature requests and bug reports can no longer be edited after they’re posted, so what people upvote and comment on stays the same. You can still delete your own post or comment.'] },
   { version: '2.0.0', date: '2026-09-27', items: [
     'A brand-new look: calmer colours, a new font, soft floating cards and a floating tab bar, with its own icon set and a new app icon and logo.',
     'Dark mode and eight colour themes (Sage, Ocean, Plum, Clay, Rose, Ochre, Forest, Slate), or any colour you like — under Me → Appearance.',
