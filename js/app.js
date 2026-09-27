@@ -6,6 +6,7 @@ import { renderTrain, renderHistory, renderWorkoutDetail, renderRoutine, renderE
 import { renderFeed, renderFriend, renderRanks } from './social.js';
 import { renderBody } from './body.js';
 import { renderActivity, renderSport } from './cardio.js';
+import { showTour, queueTour, maybeShowTour } from './tour.js';
 import { exportData, importData } from './backup.js';
 import { avatar, editAvatar } from './avatar.js';
 import { renderFeedback, renderPost } from './feedback.js';
@@ -91,6 +92,7 @@ function renderAuth(mode = 'in') {
         if (f.password.length < 8) throw new Error('Password must be at least 8 characters');
         if (!(await api.usernameAvailable(f.username))) throw new Error('That username is taken');
         await api.signUp(f.email.trim(), f.password, f.username);
+        queueTour();
       } else if (mode === 'reset') {
         await api.sendPasswordReset(f.email.trim());
         toast('If that email has an account, a reset link is on its way.');
@@ -169,7 +171,8 @@ function renderMe(root) {
         h('button', { class: getUnits() === 'imperial' ? 'on' : '', 'aria-pressed': String(getUnits() === 'imperial'), onclick: () => setUnitsTo('imperial') }, 'lb / in'))),
     h('section', { class: 'card list-card' },
       [['#/history', 'calendar', 'Workout history'], ['#/exercises', 'train', 'Exercises'], ['#/feedback', 'heart', 'Feature requests & bug reports'], ['#/help', 'help', 'Help & guide']].map(([href, i, label]) =>
-        h('a', { class: 'row gap', href }, h('span', { class: 'list-ico' }, ic(i, 18)), h('span', { class: 'grow' }, label), chev()))),
+        h('a', { class: 'row gap', href }, h('span', { class: 'list-ico' }, ic(i, 18)), h('span', { class: 'grow' }, label), chev())),
+      h('a', { class: 'row gap', href: 'javascript:void 0', onclick: showTour }, h('span', { class: 'list-ico' }, ic('play', 18)), h('span', { class: 'grow' }, 'Replay the tutorial'), chev())),
     h('section', { class: 'card' },
       h('strong', {}, 'Sync'),
       h('p', { class: 'muted small' }, pending ? `${pending} change${pending > 1 ? 's' : ''} waiting to upload. They’ll send automatically when you’re online.` : 'Everything is saved to the server.'),
@@ -240,7 +243,8 @@ async function boot() {
   tickRest();
   checkUpdate();
   setTimeout(checkBadges, 1500);
-  setTimeout(maybeShowWhatsNew, 800);  // awards any badges already earned (e.g. from past workouts)
+  setTimeout(maybeShowWhatsNew, 800);
+  maybeShowTour();   // first sign-in after creating an account
 }
 
 function mountShell() {

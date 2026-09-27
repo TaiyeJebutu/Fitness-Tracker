@@ -17,6 +17,9 @@ export const TOPICS = [
     body: ['The bar at the bottom has five tabs:',
       { steps: ['Home: your dashboard — streak, activity grid, this week, trends, records, badges and bodyweight (tap it for all body stats).', 'Train: start gym workouts, log runs, swims and other activities, your routines and recent training.', 'Friends: your friends’ workouts and badges, and friend requests.', 'Ranks: leaderboards for you and your friends — lifting, running, swimming and activity.', 'Me: your profile, avatar, badges, exercises, settings, backup and feedback.'] },
       { tip: 'The help button (the circled question mark) at the top opens help for the screen you’re on. Tap the logo to jump back to Home.' }] },
+  { id: 'tutorial', section: 'Getting started', title: 'The welcome tour', keywords: 'tutorial tour walkthrough intro introduction onboarding replay how to use start',
+    body: ['A short swipe-through tour opens the first time you sign in after creating an account. It covers the tabs, gym workouts, runs and swims, and friends, ranks and badges.',
+      { steps: ['Swipe or tap Next to move through it; Back goes to the previous card.', 'Tap Skip at any time to close it.', 'To see it again, tap “Take the tour again” at the top of Help & guide, or “Replay the tutorial” on the Me tab.'] }] },
   { id: 'offline', section: 'Getting started', title: 'Using it with no signal', keywords: 'offline internet wifi signal sync upload gym basement',
     body: ['You can log a whole workout with no signal. Everything is saved on your phone and uploads automatically when you’re back online.',
       'While changes are waiting, the top bar shows “Offline · N to sync”. Me → Sync shows the same and has a “Try now” button.',
@@ -155,6 +158,9 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '2.3.0', date: '2026-09-27', items: [
+    'New welcome tour for first-time users: a quick swipe-through of the tabs, gym workouts, runs and swims, and friends, ranks and badges.',
+    'Watch it again any time: “Take the tour again” in Help & guide, or “Replay the tutorial” on the Me tab.'] },
   { version: '2.2.0', date: '2026-09-27', items: [
     'Log reps in reserve (RIR) for each set: after you tick a set, tap 0 (failure) to 5+. Always optional.',
     'Your RIR shows in the “Last” column next time, in saved workouts and on exercise pages — and friends can see it on your workouts.',
