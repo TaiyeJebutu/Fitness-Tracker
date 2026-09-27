@@ -583,3 +583,11 @@ create policy "act edit" on public.activities for update to authenticated
 create policy "act del"  on public.activities for delete to authenticated using (owner = auth.uid());
 revoke all on public.activities from anon, authenticated;
 grant select, insert, update, delete on public.activities to authenticated;
+
+
+-- =====================================================================
+-- v2.2 additions (same as upgrade-2.2.sql)
+-- =====================================================================
+alter table public.sets add column if not exists rir smallint;
+alter table public.sets drop constraint if exists sets_rir_check;
+alter table public.sets add constraint sets_rir_check check (rir is null or rir between 0 and 5);

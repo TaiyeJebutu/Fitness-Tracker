@@ -496,3 +496,14 @@ svg.hm rect.sel { stroke: var(--ink); stroke-width: 2; }
 .sheet .list-card.flat { box-shadow: none; background: var(--surface-2); margin: 4px 0 0; }
 .sheet .list-card.flat > a + a { border-color: var(--surface-3); }
 .tiles .stat.tile strong { overflow-wrap: anywhere; }
+
+/* ---------- reps in reserve (v2.2) ---------- */
+.set-no.rir-toggle { border: 0; background: none; font: inherit; font-weight: 800; color: var(--muted); display: flex; flex-direction: column; align-items: center; line-height: 1.1; padding: 4px 0; cursor: pointer; min-height: 40px; justify-content: center; }
+.set-no.rir-toggle small { font-size: .62rem; font-weight: 800; color: var(--accent); white-space: nowrap; letter-spacing: -.01em; }
+.rir-pick { display: flex; align-items: center; gap: 6px; padding: 6px 6px 8px 10px; margin-top: 2px; animation: up .25s var(--ease); }
+.rir-label { font-size: .7rem; font-weight: 800; letter-spacing: .08em; color: var(--muted); margin-right: 2px; }
+.rir-btn { flex: 1; min-width: 0; height: 38px; border: 0; border-radius: 12px; background: var(--surface-2); color: var(--text); font: inherit; font-weight: 800; font-size: .92rem; cursor: pointer; transition: background .15s, transform .12s; }
+.rir-btn:active { transform: scale(.94); }
+.rir-btn.on { background: var(--accent); color: var(--accent-ink); }
+.rir-close { min-width: 34px; min-height: 34px; }
+.rir-tag { margin-left: 6px; font-size: .78rem; font-weight: 800; color: var(--accent); }

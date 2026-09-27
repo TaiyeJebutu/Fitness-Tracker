@@ -108,7 +108,7 @@ async function runImport(d, mode, progress) {
     for (const s of w.sets) {
       if (!exMap.get(s.exercise_id)) continue;
       sets.push({ id: id === w.id ? s.id : await deriveId(s.id, uid), workout_id: id, owner: uid, exercise_id: exMap.get(s.exercise_id),
-        position: s.position ?? 0, set_no: s.set_no ?? 1, reps: s.reps ?? 0, weight_kg: s.weight_kg ?? 0, side: s.side === 'L' || s.side === 'R' ? s.side : null, created_at: s.created_at || start });
+        position: s.position ?? 0, set_no: s.set_no ?? 1, reps: s.reps ?? 0, weight_kg: s.weight_kg ?? 0, rir: Number.isInteger(s.rir) && s.rir >= 0 && s.rir <= 5 ? s.rir : null, side: s.side === 'L' || s.side === 'R' ? s.side : null, created_at: s.created_at || start });
     }
   }
   const body = [];

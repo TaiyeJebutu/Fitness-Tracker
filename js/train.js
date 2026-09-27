@@ -5,7 +5,7 @@ import { active, startWorkout, pickExercise, editDetails, detailsSummary, exerci
 import { details, setUnilateral, updateExercise, deleteExercise, CATEGORIES } from './store.js';
 import { avatar } from './avatar.js';
 import { logActivity, activityCard, loadActivities, KINDS } from './cardio.js';
-import { h, mount, toast, sheet, confirmSheet, fmtW, fmtDate, fmtDay, duration, ago, spinner, lineChart, e1rm, toW, wUnit, ic } from './ui.js';
+import { h, mount, toast, sheet, confirmSheet, fmtW, fmtDate, fmtDay, duration, ago, spinner, lineChart, e1rm, toW, wUnit, ic, rirText } from './ui.js';
 
 // ---------- Train home ---------------------------------------------------
 export async function renderTrain(root) {
@@ -100,7 +100,7 @@ export async function renderWorkoutDetail(root, id) {
     wk.notes && h('p', { class: 'note' }, wk.notes),
     [...groups].map(([exId, sets]) => h('section', { class: 'card' },
       h('a', { href: '#/exercise/' + exId }, h('strong', {}, exName(exId))),
-      h('ol', { class: 'set-list' }, sets.map(s => h('li', {}, s.side && h('span', { class: 'side-tag' }, s.side), `${fmtW(s.weight_kg)} × ${s.reps}`,
+      h('ol', { class: 'set-list' }, sets.map(s => h('li', {}, s.side && h('span', { class: 'side-tag' }, s.side), `${fmtW(s.weight_kg)} × ${s.reps}`, s.rir != null && h('span', { class: 'rir-tag' }, `@ ${rirText(s.rir)} RIR`),
         e1rm(s.weight_kg, s.reps) && h('span', { class: 'muted small' }, ` · e1RM ${fmtW(e1rm(s.weight_kg, s.reps))}`)))))),
     mine && h('button', { class: 'btn danger ghost block', onclick: async () => {
       if (!(await confirmSheet('Delete workout?', 'This removes the workout and all its sets.'))) return;
@@ -160,7 +160,7 @@ export async function renderExercise(root, id) {
   const uid = api.userId();
   const [d, sets] = await Promise.all([
     details(id).catch(() => null),
-    api.get(`sets?owner=eq.${uid}&exercise_id=eq.${id}&select=workout_id,set_no,side,reps,weight_kg,created_at&order=created_at.asc&limit=2000`).catch(() => []),
+    api.get(`sets?owner=eq.${uid}&exercise_id=eq.${id}&select=workout_id,set_no,side,reps,weight_kg,rir,created_at&order=created_at.asc&limit=2000`).catch(() => []),
   ]);
   const byWorkout = new Map();
   for (const s of sets) byWorkout.set(s.workout_id, [...(byWorkout.get(s.workout_id) || []), s]);
@@ -212,7 +212,7 @@ export async function renderExercise(root, id) {
     lineChart(sessions.filter(s => s.best > 0).map(s => ({ x: s.date, y: toW(s.best) })), { fmt: v => Math.round(v) + ' ' + wUnit(), label: `Estimated 1RM (${wUnit()})`, axis: v => Math.round(v) }),
     h('h2', {}, 'Sessions'),
     sessions.length ? [...sessions].reverse().slice(0, 30).map(s => h('div', { class: 'card row between' },
-      h('span', {}, fmtDate(s.date)), h('span', { class: 'muted small right' }, s.sets.map(x => `${x.side || ''}${x.side ? ' ' : ''}${fmtW(x.weight_kg, false)}×${x.reps}`).join('  '))))
+      h('span', {}, fmtDate(s.date)), h('span', { class: 'muted small right' }, s.sets.map(x => `${x.side || ''}${x.side ? ' ' : ''}${fmtW(x.weight_kg, false)}×${x.reps}${x.rir != null ? '@' + rirText(x.rir) : ''}`).join('  '))))
       : h('p', { class: 'muted' }, 'You haven’t logged this exercise yet.'));
 }
 export const stat = (label, value) => h('div', { class: 'stat' }, h('span', { class: 'muted small' }, label), h('strong', {}, value));

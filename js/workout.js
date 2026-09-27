@@ -2,7 +2,7 @@
 import * as api from './api.js';
 import { state, exName, addExercise, lastSets, details, saveDetails, saveRoutine, setUnilateral, CATEGORIES } from './store.js';
 import { checkBadges } from './badges.js';
-import { h, mount, toast, sheet, confirmSheet, fmtW, toW, fromW, wUnit, clock, duration, currentPage, ic, haptic, confetti } from './ui.js';
+import { h, mount, toast, sheet, confirmSheet, fmtW, toW, fromW, wUnit, clock, duration, currentPage, ic, haptic, confetti, rirText, showRir } from './ui.js';
 
 const AKEY = 'ft.active';
 export const active = () => api.LS.get(AKEY);
@@ -69,7 +69,7 @@ async function fillPrev(w) {
 function persistSet(w, item, s) {
   const position = w.items.indexOf(item);
   api.upsert('sets', { id: s.id, workout_id: w.id, owner: api.userId(), exercise_id: item.exercise_id,
-    position, set_no: s.set_no, reps: s.reps || 0, weight_kg: s.weight_kg || 0, ...(s.side ? { side: s.side } : {}) });
+    position, set_no: s.set_no, reps: s.reps || 0, weight_kg: s.weight_kg || 0, rir: s.rir ?? null, ...(s.side ? { side: s.side } : {}) });
 }
 
 async function finish(w) {
@@ -266,6 +266,7 @@ export async function editDetails(exerciseId, onSaved) {
 // ---------- active workout screen ----------------------------------------
 const detailCache = new Map();
 let lastTicked = null;   // the set just ticked gets a little 'pop'
+let rirOpen = null;      // the set whose reps-in-reserve picker is showing
 
 export function renderWorkout(root) {
   const w = active();
@@ -325,15 +326,28 @@ export function renderWorkout(root) {
             t.done = !t.done && !!t.reps;
           });
           const t = cur.items[idx].sets[si];
-          if (t.done) { persistSet(cur, cur.items[idx], t); startRest(it.rest); lastTicked = t.id; haptic(); }
+          if (t.done) { persistSet(cur, cur.items[idx], t); startRest(it.rest); lastTicked = t.id; rirOpen = t.id; haptic(); }
+          else if (rirOpen === t.id) rirOpen = null;
           else if (!t.reps) toast('Enter reps first');
           else api.remove('sets', 'id=eq.' + t.id);
           rerender();
         } }, ic('check', 22));
-      return h('div', { class: 'set-row' + (s.done ? ' done' : '') + (s.side === 'R' ? ' side-r' : '') },
-        h('span', { class: 'set-no' + (s.side ? ' sided' : '') }, label(s)),
-        h('span', { class: 'prev muted small' }, p ? `${fmtW(p.weight_kg, false)}×${p.reps}` : '—'),
+      const rir = showRir();
+      const setRir = v => { const cur = upd(c => { const t = c.items[idx].sets[si]; t.rir = t.rir === v ? null : v; });
+        const t = cur.items[idx].sets[si]; if (t.done) persistSet(cur, cur.items[idx], t); rirOpen = null; haptic(8); rerender(); };
+      const no = rir && s.done
+        ? h('button', { class: 'set-no rir-toggle' + (s.side ? ' sided' : ''), 'aria-label': `RIR for set ${s.set_no}${side}${s.rir != null ? ': ' + rirText(s.rir) : ''} — tap to change`,
+            onclick: () => { rirOpen = rirOpen === s.id ? null : s.id; rerender(); } }, label(s), s.rir != null && h('small', {}, rirText(s.rir) + ' RIR'))
+        : h('span', { class: 'set-no' + (s.side ? ' sided' : '') }, label(s));
+      const row = h('div', { class: 'set-row' + (s.done ? ' done' : '') + (s.side === 'R' ? ' side-r' : '') },
+        no,
+        h('span', { class: 'prev muted small' }, p ? `${fmtW(p.weight_kg, false)}×${p.reps}${rir && p.rir != null ? ' @' + rirText(p.rir) : ''}` : '—'),
         wIn, rIn, tick);
+      if (!(rir && s.done && rirOpen === s.id)) return row;
+      return [row, h('div', { class: 'rir-pick', role: 'group', 'aria-label': `Reps in reserve for set ${s.set_no}${side}` },
+        h('span', { class: 'rir-label' }, 'RIR'),
+        [0, 1, 2, 3, 4, 5].map(v => h('button', { class: 'rir-btn' + (s.rir === v ? ' on' : ''), 'aria-pressed': String(s.rir === v), onclick: () => setRir(v) }, rirText(v))),
+        h('button', { class: 'icon-btn rir-close', 'aria-label': 'Skip', onclick: () => { rirOpen = null; rerender(); } }, ic('close', 16)))];
     });
     const menu = () => sheet(exName(it.exercise_id), close => h('div', { class: 'stack' },
       h('button', { class: 'btn block', onclick: () => { close(); editDetails(it.exercise_id, onDetails); } }, 'Machine & seat settings'),

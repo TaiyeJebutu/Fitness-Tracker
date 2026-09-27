@@ -1,6 +1,6 @@
 import * as api from './api.js';
 import { state, loadProfile, loadExercises, loadFriends, loadRoutines } from './store.js';
-import { h, mount, toast, setUnits, getUnits, ic, logoMark, chev } from './ui.js';
+import { h, mount, toast, setUnits, getUnits, ic, logoMark, chev, showRir, setShowRir } from './ui.js';
 import { renderWorkout, active, tickRest } from './workout.js';
 import { renderTrain, renderHistory, renderWorkoutDetail, renderRoutine, renderExercise, renderExercises } from './train.js';
 import { renderFeed, renderFriend, renderRanks } from './social.js';
@@ -156,6 +156,12 @@ function renderMe(root) {
         h('input', { type: 'checkbox', checked: p.share_activity !== false, onchange: e => setShareActivity(e.target.checked) }),
         h('span', {}, 'Friends can see my activity grid')),
       h('p', { class: 'muted small' }, 'Body stats have their own switches on the Body screen.')),
+    h('section', { class: 'card' },
+      h('strong', {}, 'Workouts'),
+      h('label', { class: 'switch', style: { marginTop: '8px' } },
+        h('input', { type: 'checkbox', checked: showRir(), onchange: e => { setShowRir(e.target.checked); toast(e.target.checked ? 'Reps in reserve on' : 'Reps in reserve off'); } }),
+        h('span', {}, 'Log reps in reserve (RIR)')),
+      h('p', { class: 'muted small' }, 'After you tick a set, pick how many more reps you could have done: 0 (failure) to 5+. Always optional. Saved on this device.')),
     h('section', { class: 'card' },
       h('strong', {}, 'Units'),
       h('div', { class: 'seg', role: 'group', 'aria-label': 'Units' },

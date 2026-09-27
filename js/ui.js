@@ -148,6 +148,11 @@ export function mondayStart(d = new Date()) {
 }
 export const todayISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
 
+/** Reps in reserve: 0 = failure … 5 = "5+". Shown per set when the Me → Workouts switch is on (this device). */
+export const rirText = r => (r == null ? '' : r >= 5 ? '5+' : String(r));
+export const showRir = () => { try { return localStorage.getItem('ft.showRir') !== '0'; } catch { return true; } };
+export const setShowRir = on => { try { localStorage.setItem('ft.showRir', on ? '1' : '0'); } catch {} };
+
 export const e1rm = (kg, reps) => (reps <= 0 || reps > 12 ? null : reps === 1 ? +kg : +kg * (1 + reps / 30));
 
 // ---------- line chart (single series, tap/hover for values) -----------

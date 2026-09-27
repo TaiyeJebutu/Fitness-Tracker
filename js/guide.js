@@ -42,6 +42,11 @@ export const TOPICS = [
       { steps: ['Check the weight and reps (they’re pre-filled from last time).', 'Tap the tick to log the set — the row fills with your colour, your phone gives a little buzz and the rest timer starts.', 'Tap the tick again to un-log it.'] },
       'The “Last” column shows what you did for that set the previous time.',
       'Tap the grey settings chip under an exercise’s name to add machine and seat settings.', '“+ Add set” and “Remove last set” sit under each exercise. The ••• menu lets you change the rest time, move the exercise up or down, or remove it.'] },
+  { id: 'rir', section: 'Workouts', title: 'Reps in reserve (RIR)', keywords: 'rir reps in reserve effort rpe failure hard intensity how close', screens: ['workout'],
+    body: ['Reps in reserve is how many more reps you could have done with good form: 0 means you hit failure, 5+ means it was easy. Logging it helps you see how hard you’re really training.',
+      { steps: ['Tick a set as normal.', 'A row of buttons appears under it: 0, 1, 2, 3, 4, 5+. Tap one — or tap × (or just carry on) to skip.', 'To change it later, tap the set number on the left of a ticked set.'] },
+      'The set number then shows the RIR (e.g. “2 RIR”), the “Last” column shows what you logged last time (e.g. 80×8 @2), and saved workouts show it next to each set — your friends can see it too.',
+      { tip: 'Don’t use it? Switch off “Log reps in reserve” under Me → Workouts (saved on this device).' }] },
   { id: 'rest-timer', section: 'Workouts', title: 'Rest timer', keywords: 'rest timer countdown beep vibrate', screens: ['workout'],
     body: ['The timer starts when you tick a set and floats above the tab bar. Use −15 / +15 to adjust it, or Skip to stop it. It beeps and vibrates when time’s up.',
       'Change an exercise’s rest time from its ••• menu, or set it in the routine.',
@@ -118,9 +123,9 @@ export const TOPICS = [
   // ---------- Settings ----------
   { id: 'avatar', section: 'Your settings', title: 'Change your avatar', keywords: 'avatar picture icon profile colour',
     body: ['On Me, tap your picture. Pick one of the drawings (animals, athletes, creatures, emblems) or an emoji, choose a background colour, and tap Save. Friends see it next to your name.'] },
-  { id: 'appearance', section: 'Your settings', title: 'Colours, dark mode & units', keywords: 'theme dark light mode colour accent units kg lb sage ocean plum clay rose ochre forest slate',
+  { id: 'appearance', section: 'Your settings', title: 'Colours, dark mode & units', keywords: 'rir reps in reserve workouts setting theme dark light mode colour accent units kg lb sage ocean plum clay rose ochre forest slate',
     body: ['Me → Appearance: choose Auto (follows your phone), Light or Dark.', 'Under “Colour theme”, pick Sage (the default), Ocean, Plum, Clay, Rose, Ochre, Forest or Slate — or any colour with the rainbow circle. Buttons, ticks, charts, the activity grid and the logo all follow your choice. Colours are adjusted automatically to stay readable in light and dark mode, and are saved on this device.',
-      'Me → Units switches between kg/cm and lb/in. Everyone sees everyone’s numbers in their own units.'] },
+      'Me → Workouts has the switch for logging reps in reserve (RIR).', 'Me → Units switches between kg/cm and lb/in. Everyone sees everyone’s numbers in their own units.'] },
   { id: 'account', section: 'Your settings', title: 'Username, password & signing out', keywords: 'username rename password sign out log out account',
     body: ['On Me you can rename your username, change your password, and sign out (at the bottom).',
       'Forgot your password? Use “Forgot password?” on the sign-in screen.'] },
@@ -150,6 +155,10 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '2.2.0', date: '2026-09-27', items: [
+    'Log reps in reserve (RIR) for each set: after you tick a set, tap 0 (failure) to 5+. Always optional.',
+    'Your RIR shows in the “Last” column next time, in saved workouts and on exercise pages — and friends can see it on your workouts.',
+    'Don’t need it? Switch it off under Me → Workouts.'] },
   { version: '2.1.0', date: '2026-09-27', items: [
     'Log runs, swims and other activities (cycling, walking, hiking, football, yoga, or your own) from the Train tab or Home’s “Start or log” button. Pace is worked out for you.',
     'Running and swimming stats pages with weekly distance and personal bests — fastest mile, 5k, 10k, half and full marathon, and more.',

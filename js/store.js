@@ -81,7 +81,7 @@ export function saveRoutine(r) {
 /** My most recent sets for an exercise from a previous workout (for "last time" hints). */
 export async function lastSets(exerciseId, excludeWorkout) {
   const uid = api.userId();
-  const path = `sets?owner=eq.${uid}&exercise_id=eq.${exerciseId}&select=workout_id,set_no,side,reps,weight_kg,created_at&order=created_at.desc&limit=60`;
+  const path = `sets?owner=eq.${uid}&exercise_id=eq.${exerciseId}&select=workout_id,set_no,side,reps,weight_kg,rir,created_at&order=created_at.desc&limit=60`;
   let rows = [];
   try { rows = await api.get(path); } catch { rows = api.cached(path) || []; }
   rows = rows.filter(r => r.workout_id !== excludeWorkout);
