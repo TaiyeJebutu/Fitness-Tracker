@@ -1,6 +1,6 @@
 // Bodyweight and measurements, with a per-metric "friends can see this" switch.
 import * as api from './api.js';
-import { state, METRICS } from './store.js';
+import { state, METRICS, metricOk } from './store.js';
 import { fmtMetric } from './social.js';
 import { checkBadges } from './badges.js';
 import { h, mount, toast, spinner, lineChart, toW, fromW, toL, fromL, wUnit, lUnit, fmtDay, todayISO, currentPage, ic } from './ui.js';
@@ -8,6 +8,8 @@ import { h, mount, toast, spinner, lineChart, toW, fromW, toL, fromL, wUnit, lUn
 const unitFor = def => (def.kind === 'w' ? wUnit() : def.kind === 'pct' ? '%' : lUnit());
 const toView = (def, v) => (def.kind === 'w' ? toW(v) : def.kind === 'pct' ? +v : toL(v));
 const fromView = (def, v) => (def.kind === 'w' ? fromW(v) : def.kind === 'pct' ? v : fromL(v));
+/** Allowed range in the viewer's units, rounded inwards so any whole number shown converts back inside the limit. */
+const viewRange = def => [Math.ceil(toView(def, def.min) - 1e-9), Math.floor(toView(def, def.max) + 1e-9)];
 
 export async function renderBody(root, key = 'bodyweight') {
   const def = METRICS.find(m => m.key === key) || METRICS[0];
@@ -30,7 +32,9 @@ export async function renderBody(root, key = 'bodyweight') {
   const add = e => {
     e.preventDefault();
     const n = parseFloat(String(val).replace(',', '.'));
-    if (!(n > 0)) return toast('Enter a value', 'err');
+    if (!Number.isFinite(n)) return toast('Enter a value', 'err');
+    const [lo, hi] = viewRange(def);
+    if (n < lo || n > hi || !metricOk(def, fromView(def, n))) return toast(`${def.label} must be between ${lo} and ${hi}${def.kind === 'pct' ? '' : ' '}${unitFor(def)}`, 'err');
     api.upsert('body_metrics', { id: api.uuid(), owner: uid, metric: def.key, value: +fromView(def, n).toFixed(3), measured_on: date });
     toast('Saved');
     renderBody(root, def.key);
@@ -44,8 +48,8 @@ export async function renderBody(root, key = 'bodyweight') {
         h('label', { class: 'switch' },
           h('input', { type: 'checkbox', checked: shared, onchange: e => toggleShare(def.key, e.target.checked) }),
           h('span', {}, 'Friends can see'))),
-      h('form', { class: 'row gap', onsubmit: add },
-        h('input', { type: 'number', inputmode: 'decimal', step: 'any', min: 0, placeholder: unitFor(def), 'aria-label': `${def.label} in ${unitFor(def)}`, 'data-noautofocus': '1', oninput: e => (val = e.target.value) }),
+      h('form', { class: 'row gap', novalidate: true, onsubmit: add },
+        h('input', { type: 'number', inputmode: 'decimal', step: 'any', min: viewRange(def)[0], max: viewRange(def)[1], placeholder: `${viewRange(def).join('–')}${def.kind === 'pct' ? '' : ' '}${unitFor(def)}`, 'aria-label': `${def.label} in ${unitFor(def)}`, 'data-noautofocus': '1', oninput: e => (val = e.target.value) }),
         h('input', { type: 'date', value: date, max: todayISO(), 'aria-label': 'Date', class: 'date', onchange: e => (date = e.target.value || todayISO()) }),
         h('button', { class: 'btn primary', type: 'submit' }, 'Add'))),
     lineChart(rows.map(r => ({ x: new Date(r.measured_on + 'T12:00'), y: toView(def, +r.value) })),

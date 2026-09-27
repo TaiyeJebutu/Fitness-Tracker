@@ -131,7 +131,12 @@ create table public.body_metrics (
                 ('bodyweight','body_fat','chest','waist','hips','neck','shoulders','arms','forearms','thighs','calves')),
   value       numeric(8,3) not null check (value > 0),
   measured_on date not null default current_date,
-  created_at  timestamptz not null default now()
+  created_at  timestamptz not null default now(),
+  -- sensible limits (kg, %, cm); the app checks the same ranges (METRICS in js/store.js)
+  constraint body_metrics_value_range check (case metric
+    when 'bodyweight' then value between 20 and 400
+    when 'body_fat'   then value between 1 and 75
+    else value between 5 and 300 end)
 );
 create index body_metrics_owner on public.body_metrics (owner, metric, measured_on);
 

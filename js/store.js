@@ -111,19 +111,15 @@ export function saveDetails(exerciseId, d) {
 
 export const CATEGORIES = ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core', 'Full body', 'Cardio', 'Other'];
 
+// min/max are in stored units (kg, %, cm). The database enforces the same limits for new entries.
 export const METRICS = [
-  { key: 'bodyweight', label: 'Bodyweight', kind: 'w' },
-  { key: 'body_fat', label: 'Body fat', kind: 'pct' },
-  { key: 'chest', label: 'Chest', kind: 'l' },
-  { key: 'waist', label: 'Waist', kind: 'l' },
-  { key: 'hips', label: 'Hips', kind: 'l' },
-  { key: 'neck', label: 'Neck', kind: 'l' },
-  { key: 'shoulders', label: 'Shoulders', kind: 'l' },
-  { key: 'arms', label: 'Arms', kind: 'l' },
-  { key: 'forearms', label: 'Forearms', kind: 'l' },
-  { key: 'thighs', label: 'Thighs', kind: 'l' },
-  { key: 'calves', label: 'Calves', kind: 'l' },
+  { key: 'bodyweight', label: 'Bodyweight', kind: 'w', min: 20, max: 400 },
+  { key: 'body_fat', label: 'Body fat', kind: 'pct', min: 1, max: 75 },
+  ...[['chest', 'Chest'], ['waist', 'Waist'], ['hips', 'Hips'], ['neck', 'Neck'], ['shoulders', 'Shoulders'], ['arms', 'Arms'],
+    ['forearms', 'Forearms'], ['thighs', 'Thighs'], ['calves', 'Calves']].map(([key, label]) => ({ key, label, kind: 'l', min: 5, max: 300 })),
 ];
+/** Is a stored-unit value inside the allowed range for this metric? */
+export const metricOk = (def, v) => !!def && Number.isFinite(+v) && +v >= def.min - 1e-9 && +v <= def.max + 1e-9;
 
 /** Remember left/right for an exercise (applies everywhere it's used). */
 export function setUnilateral(exerciseId, on) { saveDetails(exerciseId, { unilateral: !!on }); }

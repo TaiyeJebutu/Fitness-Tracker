@@ -74,9 +74,10 @@ export const TOPICS = [
       'They show under the exercise name every time you do it. Only you can see them.'] },
 
   // ---------- Body ----------
-  { id: 'body-stats', section: 'Body stats', title: 'Track bodyweight & measurements', keywords: 'bodyweight weight measurement waist chest body fat chart', screens: ['body'],
+  { id: 'body-stats', section: 'Body stats', title: 'Track bodyweight & measurements', keywords: 'bodyweight weight measurement waist chest body fat chart limit range percent', screens: ['body'],
     body: [{ steps: ['Open Body and pick a stat from the chips at the top.', 'Enter the value and date, then tap Add.'] },
-      'The chart shows your trend — tap or drag on it to see values. Tap ✕ on an entry to delete it.',
+      'Values must be realistic: body fat 1–75%, bodyweight 20–400 kg (45–881 lb), measurements 5–300 cm (2–118 in). The allowed range is shown in the box, and you’ll get a message if something’s outside it — handy for catching typos.',
+      'The chart shows your trend — tap or drag on it to see values. Tap the × on an entry to delete it.',
       'Body lives inside Home: tap the bodyweight card or “All body stats”.'] },
   { id: 'body-sharing', section: 'Body stats', title: 'Choose what friends can see', keywords: 'privacy share private friends see body', screens: ['body'],
     body: ['Every body stat is private until you switch on “Friends can see” for that stat. You can share bodyweight but keep your waist private, for example. Friends see shared stats on your friend page.'] },
@@ -135,6 +136,8 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '2.0.2', date: '2026-09-27', items: [
+    'Body stats now only accept realistic values: body fat 1–75%, bodyweight 20–400 kg (45–881 lb), measurements 5–300 cm (2–118 in). This catches typos like 150% body fat.'] },
   { version: '2.0.1', date: '2026-09-27', items: [
     'Feature requests and bug reports can no longer be edited after they’re posted, so what people upvote and comment on stays the same. You can still delete your own post or comment.'] },
   { version: '2.0.0', date: '2026-09-27', items: [

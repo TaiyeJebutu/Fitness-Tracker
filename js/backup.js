@@ -1,6 +1,6 @@
 // Export and import of a person's own data ("Export my data" files).
 import * as api from './api.js';
-import { state, loadExercises, loadRoutines } from './store.js';
+import { state, loadExercises, loadRoutines, METRICS, metricOk } from './store.js';
 import { h, mount, toast, sheet, confirmSheet, fmtDay } from './ui.js';
 
 // ---------- export ---------------------------------------------------------
@@ -110,7 +110,7 @@ async function runImport(d, mode, progress) {
     }
   }
   const body = [];
-  for (const b of d.body_metrics)
+  for (const b of d.body_metrics.filter(b => metricOk(METRICS.find(m => m.key === b.metric), b.value)))
     body.push({ id: await idFor(mine.b, b.id), owner: uid, metric: b.metric, value: b.value, measured_on: b.measured_on || now.slice(0, 10), created_at: b.created_at || now });
   const details = d.exercise_details.filter(x => exMap.get(x.exercise_id)).map(x => ({
     user_id: uid, exercise_id: exMap.get(x.exercise_id), machine_brand: x.machine_brand ?? null, machine_model: x.machine_model ?? null,
@@ -155,6 +155,7 @@ export function importData() {
 
 function showImportSheet(d, fileName) {
   const setCount = d.workouts.reduce((n, w) => n + w.sets.length, 0);
+  const badBody = d.body_metrics.filter(b => !metricOk(METRICS.find(m => m.key === b.metric), b.value)).length;
   const dates = d.workouts.map(w => w.started_at).filter(Boolean).sort();
   let mode = 'skip';
   sheet('Import backup', close => {
@@ -188,7 +189,7 @@ function showImportSheet(d, fileName) {
       h('ul', { class: 'import-summary small' },
         h('li', {}, `${d.workouts.length} workouts (${setCount} sets)${dates.length ? `, ${fmtDay(dates[0])} – ${fmtDay(dates[dates.length - 1])}` : ''}`),
         h('li', {}, `${d.routines.length} routines`),
-        h('li', {}, `${d.body_metrics.length} body stat entries`),
+        h('li', {}, `${d.body_metrics.length} body stat entries`, badBody ? ` (${badBody} outside the allowed range will be skipped)` : ''),
         h('li', {}, `${d.exercise_details.length} exercise settings`)),
       h('h2', {}, 'If something already exists'),
       radios, status, go);
