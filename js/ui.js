@@ -153,6 +153,20 @@ export const rirText = r => (r == null ? '' : r >= 5 ? '5+' : String(r));
 export const showRir = () => { try { return localStorage.getItem('ft.showRir') !== '0'; } catch { return true; } };
 export const setShowRir = on => { try { localStorage.setItem('ft.showRir', on ? '1' : '0'); } catch {} };
 
+/** Keep the screen awake while a timer runs (phones pause web apps when the screen turns off). Setting saved per device. */
+export const keepAwakeOn = () => { try { return localStorage.getItem('ft.keepAwake') !== '0'; } catch { return true; } };
+export const setKeepAwake = on => { try { localStorage.setItem('ft.keepAwake', on ? '1' : '0'); } catch {} };
+export const wakeLockSupported = () => 'wakeLock' in navigator;
+let wakeLock = null, wantAwake = false;
+export async function holdScreenOn(on) {
+  wantAwake = !!on && keepAwakeOn();
+  if (!wantAwake) { if (wakeLock) { const w = wakeLock; wakeLock = null; try { await w.release(); } catch {} } return; }
+  if (wakeLock || !wakeLockSupported() || document.visibilityState !== 'visible') return;
+  try { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } catch { wakeLock = null; }
+}
+// the phone drops the lock whenever the app is hidden; take it again when it comes back
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && wantAwake) holdScreenOn(true); });
+
 export const e1rm = (kg, reps) => (reps <= 0 || reps > 12 ? null : reps === 1 ? +kg : +kg * (1 + reps / 30));
 
 // ---------- line chart (single series, tap/hover for values) -----------

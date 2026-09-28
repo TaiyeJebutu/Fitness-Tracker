@@ -50,10 +50,15 @@ export const TOPICS = [
       { steps: ['Tick a set as normal.', 'A row of buttons appears under it: 0, 1, 2, 3, 4, 5+. Tap one — or tap × (or just carry on) to skip.', 'To change it later, tap the set number on the left of a ticked set.'] },
       'The set number then shows the RIR (e.g. “2 RIR”), the “Last” column shows what you logged last time (e.g. 80×8 @2), and saved workouts show it next to each set — your friends can see it too.',
       { tip: 'Don’t use it? Switch off “Log reps in reserve” under Me → Workouts (saved on this device).' }] },
-  { id: 'rest-timer', section: 'Workouts', title: 'Rest timer', keywords: 'rest timer countdown beep vibrate', screens: ['workout'],
+  { id: 'rest-timer', section: 'Workouts', title: 'Rest timer', keywords: 'rest timer countdown beep vibrate screen off locked sound notification', screens: ['workout'],
     body: ['The timer starts when you tick a set and floats above the tab bar. Use −15 / +15 to adjust it, or Skip to stop it. It beeps and vibrates when time’s up.',
       'Change an exercise’s rest time from its ••• menu, or set it in the routine.',
-      { tip: 'Phones pause web apps when the screen is locked, so the beep may not play then — the countdown is still correct when you come back.' }] },
+      'While a timer runs the app keeps your screen on, so the beep and buzz can happen. (Phones pause web apps when the screen turns off, so if you lock it yourself the beep waits until you turn it back on — the countdown is still correct.) You can turn this off under Me → Workouts.'] },
+  { id: 'timer', section: 'Workouts', title: 'Timer for warm-ups', keywords: 'timer countdown warm up warmup stretch stopwatch clock screen on awake beep', screens: ['workout'],
+    body: ['Need a countdown that isn’t a rest between sets — for a warm-up, a stretch or a plank? During a workout, tap Timer next to the progress line.',
+      { steps: ['Tap a preset: 30 s, 1 min, 1:30, 2 min or 3 min — it starts straight away.', 'Or type minutes and seconds and tap Start timer (it remembers your last time).', 'It runs in the same floating capsule as the rest timer, labelled TIMER, with −15 / +15 and Skip.'] },
+      'Starting a timer replaces a rest countdown that’s running, and ticking a set starts a rest countdown in its place.',
+      { tip: 'The screen stays on while it runs so it can beep and buzz at zero. Don’t want that? Switch off “Keep the screen on while a timer runs” under Me → Workouts.' }] },
   { id: 'finish-workout', section: 'Workouts', title: 'Finish or discard a workout', keywords: 'finish end save discard cancel', screens: ['workout'],
     body: ['Tap Finish at the top. You’ll get a little celebration, then you can:', { steps: ['Update the routine you started from with today’s exercises, or', 'Save the workout as a new routine.'] },
       '“Discard workout” at the bottom deletes everything logged in it.'] },
@@ -158,6 +163,9 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '2.4.0', date: '2026-09-28', items: [
+    'New Timer button during workouts for warm-ups, stretches or anything else: tap 30 s, 1, 1:30, 2 or 3 min, or choose your own time.',
+    'Timers now keep your screen on while they run, so the beep actually goes off (phones pause web apps when the screen turns off). You can switch this off under Me → Workouts.'] },
   { version: '2.3.0', date: '2026-09-27', items: [
     'New welcome tour for first-time users: a quick swipe-through of the tabs, gym workouts, runs and swims, and friends, ranks and badges.',
     'Watch it again any time: “Take the tour again” in Help & guide, or “Replay the tutorial” on the Me tab.'] },

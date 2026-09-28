@@ -569,3 +569,12 @@ svg.hm rect.sel { stroke: var(--ink); stroke-width: 2; }
 .tour-help { display: grid; place-items: center; width: 74px; height: 74px; margin: 0 auto; border-radius: 22px; background: var(--accent-soft); color: var(--accent); }
 .tour-link { width: 100%; border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 @media (max-height: 640px) { .tour-art { min-height: 0; padding: 14px; } .tour-card-page h2 { margin-top: 16px; font-size: 1.35rem; } }
+
+/* ---------- any-time timer (v2.4) ---------- */
+.wk-subrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.wk-subrow .wk-sub { margin-bottom: 0; }
+.timer-btn { flex: none; }
+.timer-btn .ic { color: var(--accent); }
+.timer-presets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 12px 0 4px; }
+.timer-preset { padding: 0; min-height: 50px; border-radius: 16px; font-size: .9rem; }
+.sheet .timer-preset { background: var(--surface-2); box-shadow: none; }

@@ -2,7 +2,7 @@
 import * as api from './api.js';
 import { state, exName, addExercise, lastSets, details, saveDetails, saveRoutine, setUnilateral, CATEGORIES } from './store.js';
 import { checkBadges } from './badges.js';
-import { h, mount, toast, sheet, confirmSheet, fmtW, toW, fromW, wUnit, clock, duration, currentPage, ic, haptic, confetti, rirText, showRir } from './ui.js';
+import { h, mount, toast, sheet, confirmSheet, fmtW, toW, fromW, wUnit, clock, duration, currentPage, ic, haptic, confetti, rirText, showRir, holdScreenOn } from './ui.js';
 
 const AKEY = 'ft.active';
 export const active = () => api.LS.get(AKEY);
@@ -110,8 +110,9 @@ async function discard(w, skipConfirm) {
 // ---------- rest timer ---------------------------------------------------
 const RKEY = 'ft.rest';
 export const restState = () => api.LS.get(RKEY);
-export function startRest(seconds) {
-  api.LS.set(RKEY, { end: Date.now() + seconds * 1000, total: seconds, beeped: false });
+/** Start the floating countdown: the automatic rest timer, or a warm-up / any-time timer (label 'Timer'). */
+export function startRest(seconds, label = 'Rest') {
+  api.LS.set(RKEY, { end: Date.now() + seconds * 1000, total: seconds, beeped: false, label });
   primeAudio();
   tickRest();
 }
@@ -136,19 +137,39 @@ export function tickRest() {
   const bar = document.getElementById('restbar');
   if (!bar) return;
   const r = restState();
-  if (!r) { bar.hidden = true; return; }
+  if (!r) { bar.hidden = true; holdScreenOn(false); return; }
+  holdScreenOn(true);
   const left = Math.ceil((r.end - Date.now()) / 1000);
   if (left <= 0 && !r.beeped) { r.beeped = true; api.LS.set(RKEY, r); beep(); }
   if (left <= -5) { stopRest(); return; }
   bar.hidden = false;
   mount(bar,
     h('div', { class: 'rest-fill', style: { width: Math.max(0, Math.min(100, (left / r.total) * 100)) + '%' } }),
-    h('div', { class: 'rest-time' }, ic('timer', 22), h('span', {}, left > 0 ? clock(left) : 'Go!'), h('span', { class: 'rest-label' }, 'Rest')),
+    h('div', { class: 'rest-time' }, ic('timer', 22), h('span', {}, left > 0 ? clock(left) : 'Go!'), h('span', { class: 'rest-label' }, r.label || 'Rest')),
     h('button', { class: 'icon-btn', onclick: () => adjustRest(-15), 'aria-label': 'Minus 15 seconds' }, '−15'),
     h('button', { class: 'icon-btn', onclick: () => adjustRest(15), 'aria-label': 'Plus 15 seconds' }, '+15'),
     h('button', { class: 'icon-btn', onclick: stopRest, 'aria-label': 'Stop rest timer' }, 'Skip'));
 }
 setInterval(tickRest, 250);
+
+// ---------- any-time countdown (warm-ups, stretches…) --------------------------
+const TKEY = 'ft.timerLast';
+export function timerSheet() {
+  const last = api.LS.get(TKEY) || 60;
+  sheet('Timer', close => {
+    const go = s => { if (!(s >= 5 && s <= 3600)) return toast('Pick between 5 seconds and 60 minutes', 'err'); api.LS.set(TKEY, s); startRest(s, 'Timer'); haptic(); close(); };
+    let m = String(Math.floor(last / 60)), sec = String(last % 60);
+    const num = (label, v, max, set) => h('label', { class: 'field compact' }, h('span', {}, label),
+      h('input', { type: 'number', inputmode: 'numeric', min: 0, max, step: 1, value: v, 'aria-label': label, 'data-noautofocus': '1', oninput: e => set(e.target.value) }));
+    return h('div', {},
+      h('p', { class: 'muted small' }, 'A countdown for warm-ups, stretches or anything else. It uses the same floating timer as rest (starting one replaces the other).'),
+      h('div', { class: 'timer-presets' }, [30, 60, 90, 120, 180].map(s => h('button', { class: 'btn timer-preset', onclick: () => go(s) }, s < 60 ? `${s} s` : s % 60 ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : `${s / 60} min`))),
+      h('div', { class: 'pick-head' }, 'Or choose a time'),
+      h('div', { class: 'row gap dur' }, num('Minutes', m, 60, v => (m = v)), num('Seconds', sec, 59, v => (sec = v))),
+      h('button', { class: 'btn primary block', onclick: () => go((+m || 0) * 60 + (+sec || 0)) }, ic('play', 18), 'Start timer'),
+      restState() && h('button', { class: 'btn ghost block', onclick: () => { stopRest(); close(); } }, 'Stop the current timer'));
+  });
+}
 
 // ---------- exercise picker ---------------------------------------------
 export function pickExercise(onPick) {
@@ -288,7 +309,9 @@ export function renderWorkout(root) {
         api.upsert('workouts', { id: cur.id, name: cur.name, owner: api.userId(), started_at: cur.started_at }); } }),
       h('button', { class: 'btn dark', onclick: () => finish(active()) }, 'Finish')),
     elapsed,
-    h('div', { class: 'wk-sub' }, w.items.length ? `${doneEx} of ${w.items.length} exercise${w.items.length === 1 ? '' : 's'} done · ${doneSets} set${doneSets === 1 ? '' : 's'} logged` : 'Add an exercise to begin'));
+    h('div', { class: 'wk-subrow' },
+      h('div', { class: 'wk-sub' }, w.items.length ? `${doneEx} of ${w.items.length} exercise${w.items.length === 1 ? '' : 's'} done · ${doneSets} set${doneSets === 1 ? '' : 's'} logged` : 'Add an exercise to begin'),
+      h('button', { class: 'btn small timer-btn', onclick: timerSheet }, ic('timer', 16), 'Timer')));
 
   const cards = w.items.map((it, idx) => {
     const d = detailCache.get(it.exercise_id);

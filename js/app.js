@@ -1,6 +1,6 @@
 import * as api from './api.js';
 import { state, loadProfile, loadExercises, loadFriends, loadRoutines } from './store.js';
-import { h, mount, toast, setUnits, getUnits, ic, logoMark, chev, showRir, setShowRir } from './ui.js';
+import { h, mount, toast, setUnits, getUnits, ic, logoMark, chev, showRir, setShowRir, keepAwakeOn, setKeepAwake, wakeLockSupported } from './ui.js';
 import { renderWorkout, active, tickRest } from './workout.js';
 import { renderTrain, renderHistory, renderWorkoutDetail, renderRoutine, renderExercise, renderExercises } from './train.js';
 import { renderFeed, renderFriend, renderRanks } from './social.js';
@@ -163,7 +163,13 @@ function renderMe(root) {
       h('label', { class: 'switch', style: { marginTop: '8px' } },
         h('input', { type: 'checkbox', checked: showRir(), onchange: e => { setShowRir(e.target.checked); toast(e.target.checked ? 'Reps in reserve on' : 'Reps in reserve off'); } }),
         h('span', {}, 'Log reps in reserve (RIR)')),
-      h('p', { class: 'muted small' }, 'After you tick a set, pick how many more reps you could have done: 0 (failure) to 5+. Always optional. Saved on this device.')),
+      h('p', { class: 'muted small' }, 'After you tick a set, pick how many more reps you could have done: 0 (failure) to 5+. Always optional. Saved on this device.'),
+      h('label', { class: 'switch small-switch' },
+        h('input', { type: 'checkbox', checked: keepAwakeOn(), onchange: e => { setKeepAwake(e.target.checked); toast(e.target.checked ? 'Screen stays on during timers' : 'Screen can turn off during timers'); } }),
+        h('span', {}, 'Keep the screen on while a timer runs')),
+      h('p', { class: 'muted small' }, wakeLockSupported()
+        ? 'Phones pause web apps when the screen turns off, so the timer can only beep while the screen is on. Uses a little more battery.'
+        : 'Your browser can’t keep the screen on — set your phone’s auto-lock to a longer time so the timer can beep.')),
     h('section', { class: 'card' },
       h('strong', {}, 'Units'),
       h('div', { class: 'seg', role: 'group', 'aria-label': 'Units' },
