@@ -6,7 +6,7 @@ import { avatar } from './avatar.js';
 import { earnedBy, badgeStrip } from './badges.js';
 import { fmtMetric } from './social.js';
 import { chooseActivity, activityName, fmtDist, KINDS, hmShort } from './cardio.js';
-import { h, svg, mount, spinner, toast, fmtW, fmtBig, fmtDay, fmtDate, mondayStart, e1rm, toW, wUnit, ago, ic } from './ui.js';
+import { h, svg, mount, spinner, toast, fmtW, fmtBig, fmtDay, fmtDate, mondayStart, e1rm, toW, wUnit, ago, ic, sheet, currentPage } from './ui.js';
 
 const DAY = 86400000;
 export const dayKey = d => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
@@ -151,19 +151,55 @@ const tile = (label, value, delta, goodUp = true) => h('div', { class: 'stat til
   delta != null && h('span', { class: 'delta small ' + (delta === 0 ? '' : (delta > 0) === goodUp ? 'up' : 'down') },
     delta === 0 ? '= same' : `${delta > 0 ? '▲' : '▼'} ${delta > 0 ? '+' : '−'}${Math.abs(delta)}`));
 
-function streakCard(streak, done, target, thisWeek) {
-  const R = 36, C = 2 * Math.PI * R, frac = Math.min(1, done / target);
-  const prog = svg('circle', { cx: 43, cy: 43, r: R, fill: 'none', 'stroke-width': 8, 'stroke-linecap': 'round', class: 'prog', 'stroke-dasharray': C, 'stroke-dashoffset': C });
-  requestAnimationFrame(() => requestAnimationFrame(() => prog.setAttribute('stroke-dashoffset', C * (1 - frac))));
-  return h('section', { class: 'card streak-card' },
-    h('div', { class: 'ring', role: 'img', 'aria-label': `${done} of ${target} sessions this week` },
-      svg('svg', { width: 86, height: 86, viewBox: '0 0 86 86' },
-        svg('circle', { cx: 43, cy: 43, r: R, fill: 'none', 'stroke-width': 8, class: 'track' }), prog),
-      h('b', {}, streak)),
-    h('div', {},
+/** Three rings on one scale: outer = your goal, middle = your average, inner = this week.
+ *  A full ring is 7 sessions, or more if the goal, average or this week is higher, so the rings stay comparable. */
+export const GOAL_MAX = 30;
+function streakCard(streak, done, goal, avg, thisWeek) {
+  const MAX = Math.max(7, goal, Math.ceil(avg || 0), done);
+  const ring = (r, v, cls) => {
+    const C = 2 * Math.PI * r;
+    const prog = svg('circle', { cx: 52, cy: 52, r, fill: 'none', 'stroke-width': 8, 'stroke-linecap': 'round', class: 'prog ' + cls, 'stroke-dasharray': C, 'stroke-dashoffset': C });
+    if (v > 0) requestAnimationFrame(() => requestAnimationFrame(() => prog.setAttribute('stroke-dashoffset', C * (1 - Math.min(1, v / MAX)))));
+    return [svg('circle', { cx: 52, cy: 52, r, fill: 'none', 'stroke-width': 8, class: 'track' }), prog];
+  };
+  const avgTxt = avg == null ? 'after your first full week' : String(Math.round(avg * 10) / 10);
+  const note = done >= goal ? 'Goal reached this week. Lovely work.'
+    : `${goal - done} more session${goal - done === 1 ? '' : 's'} to hit your goal`;
+  return h('button', { class: 'card streak-card rings-card', onclick: () => goalSheet(), 'aria-label': `Weekly goal ${goal}. Your average ${avgTxt}. This week ${done}. Tap to change your goal.` },
+    h('div', { class: 'ring rings', 'aria-hidden': 'true' },
+      svg('svg', { width: 104, height: 104, viewBox: '0 0 104 104' }, ring(44, goal, 'goal'), ring(33, avg || 0, 'avg'), ring(22, done, 'now'))),
+    h('div', { class: 'rings-info' },
       h('div', { class: 'title' }, streak ? `${streak}-week streak` : 'No streak yet'),
-      h('div', { class: 'muted small' }, `${done} of ${target} sessions this week`),
-      h('div', { class: 'small streak-note' }, streak ? (thisWeek ? (done >= target ? 'Weekly goal reached. Lovely work.' : 'You’ve trained this week. Keep it going.') : 'Train this week to keep your streak.') : 'Train this week to start one.')));
+      h('div', { class: 'small streak-note' }, streak || thisWeek ? note : 'Train this week to start a streak.'),
+      h('div', { class: 'ring-legend' },
+        h('span', {}, h('i', { class: 'goal' }), `Goal · ${goal} a week`),
+        h('span', {}, h('i', { class: 'avg' }), `Your average · ${avgTxt}`),
+        h('span', {}, h('i', { class: 'now' }), `This week · ${done}`))));
+}
+
+/** Pick a weekly goal (1–7 sessions). Saved on your account. */
+export function goalSheet(onSaved) {
+  const cur = state.profile?.weekly_goal || 3;
+  sheet('Weekly goal', close => {
+    const save = async n => {
+      if (!Number.isInteger(n) || n < 1 || n > GOAL_MAX) return toast(`Choose a whole number from 1 to ${GOAL_MAX}`, 'err');
+      try {
+        await api.patch('profiles', 'id=eq.' + api.userId(), { weekly_goal: n });
+        state.profile.weekly_goal = n; toast(`Goal set: ${n} a week`); close();
+        if (onSaved) onSaved(); else if ((location.hash || '#/') === '#/') renderHome(currentPage());
+      } catch (e) { toast(e.network ? 'You’re offline — try again when you have signal.' : e.message, 'err'); }
+    };
+    let custom = cur > 7 ? String(cur) : '';
+    return h('div', {},
+    h('p', { class: 'muted small' }, 'How many sessions a week are you aiming for? Gym workouts, runs, swims and other activities all count.'),
+    h('div', { class: 'goal-pick', role: 'radiogroup', 'aria-label': 'Sessions a week' }, [1, 2, 3, 4, 5, 6, 7].map(n =>
+      h('button', { class: 'goal-btn' + (n === cur ? ' on' : ''), role: 'radio', 'aria-checked': String(n === cur), 'aria-label': `${n} a week`, onclick: () => save(n) }, n))),
+    h('form', { class: 'row gap goal-custom', novalidate: true, onsubmit: e => { e.preventDefault(); save(Number(custom)); } },
+      h('input', { type: 'number', inputmode: 'numeric', min: 1, max: GOAL_MAX, step: 1, value: custom, placeholder: `Or type your own (up to ${GOAL_MAX})`,
+        'aria-label': 'Custom weekly goal', 'data-noautofocus': '1', oninput: e => (custom = e.target.value) }),
+      h('button', { class: 'btn primary', type: 'submit' }, 'Set')),
+    h('p', { class: 'muted small' }, 'The rings: outer is your goal, middle is your average over recent weeks, inner is this week. A full ring is 7 sessions — or more, if your goal, average or this week is higher.'));
+  });
 }
 
 // ---------- the dashboard -------------------------------------------------------
@@ -211,8 +247,12 @@ export async function renderHome(root) {
   let streak = 0, k = weeksWith.has(0) ? 0 : -1;
   while (weeksWith.has(k)) { streak++; k--; }
   // weekly target: your usual number of sessions (average of the last 8 full weeks, at least 2)
-  const last8 = [...workouts, ...acts].filter(w => inRange(w.started_at, addDays(wk0, -56), wk0)).length;
-  const target = Math.max(2, Math.round(last8 / 8));
+  // your average: sessions per full week, over up to the last 8 full weeks since your first session
+  const all = [...workouts, ...acts];
+  const first = all.length ? mondayStart(new Date(Math.min(...all.map(w => +new Date(w.started_at))))) : null;
+  const fullWeeks = first ? Math.min(8, Math.round((+wk0 - +first) / (7 * DAY))) : 0;
+  const avg = fullWeeks > 0 ? all.filter(w => inRange(w.started_at, addDays(wk0, -7 * fullWeeks), wk0)).length / fullWeeks : null;
+  const goal = me.weekly_goal || 3;
 
   // ---- weekly volume, last 12 weeks
   const volWeeks = Array.from({ length: 12 }, (_, i) => addDays(wk0, -7 * (11 - i)));
@@ -255,7 +295,7 @@ export async function renderHome(root) {
   const bwDef = METRICS.find(m => m.key === 'bodyweight');
 
   mount(body,
-    streakCard(streak, cur.w, target, weeksWith.has(0)),
+    streakCard(streak, cur.w, goal, avg, weeksWith.has(0)),
 
     h('h2', {}, 'Activity'),
     h('section', { class: 'card' }, activityGrid(days)),

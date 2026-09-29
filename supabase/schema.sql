@@ -591,3 +591,12 @@ grant select, insert, update, delete on public.activities to authenticated;
 alter table public.sets add column if not exists rir smallint;
 alter table public.sets drop constraint if exists sets_rir_check;
 alter table public.sets add constraint sets_rir_check check (rir is null or rir between 0 and 5);
+
+
+-- =====================================================================
+-- v2.6 additions (same as upgrade-2.6.sql)
+-- =====================================================================
+alter table public.profiles add column if not exists weekly_goal smallint not null default 3;
+alter table public.profiles drop constraint if exists profiles_weekly_goal_check;
+alter table public.profiles add constraint profiles_weekly_goal_check check (weekly_goal between 1 and 30);
+grant update (username, units, shared_metrics, avatar_icon, avatar_color, share_activity, weekly_goal) on public.profiles to authenticated;

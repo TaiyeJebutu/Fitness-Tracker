@@ -28,8 +28,13 @@ export const TOPICS = [
 
   { id: 'dashboard', section: 'Getting started', title: 'Your Home dashboard', keywords: 'home dashboard stats streak this week trends volume records pr body areas', screens: [''],
     body: ['Home is your dashboard. From top to bottom:',
-      { steps: ['Streak — the ring fills as you work towards your usual number of sessions for the week (your average over the last 8 weeks, at least 2). The number in the middle is how many weeks in a row you’ve trained. Gym workouts, runs, swims and other activities all count.', 'Activity — a grid of every day (see “The activity grid”).', 'This week — sessions (gym workouts plus runs, swims and other activities), sets, volume and time, compared with the same point last week.', 'Running, swimming & more — this week’s distance or time for each kind of activity you log. Tap one for its stats and personal bests.', 'Trends — your weekly volume for the last 12 weeks (tap a column for its value), and which body areas you trained in the last 30 days.', 'Recent personal records — sets that beat your previous best estimated 1-rep max.', 'Badges — your latest ones and progress to the next workout milestone.', 'Body — your latest bodyweight with a mini trend. Tap it, or “All body stats”, to open Body.'] },
+      { steps: ['Streak & rings — how many weeks in a row you’ve trained, and three rings: the outer one is your weekly goal, the middle one your average sessions per week (over up to the last 8 full weeks), and the inner one this week so far. A full ring is 7 sessions (or more, if you train more), so you can watch this week catch up with your goal. Gym workouts, runs, swims and other activities all count.', 'Activity — a grid of every day (see “The activity grid”).', 'This week — sessions (gym workouts plus runs, swims and other activities), sets, volume and time, compared with the same point last week.', 'Running, swimming & more — this week’s distance or time for each kind of activity you log. Tap one for its stats and personal bests.', 'Trends — your weekly volume for the last 12 weeks (tap a column for its value), and which body areas you trained in the last 30 days.', 'Recent personal records — sets that beat your previous best estimated 1-rep max.', 'Badges — your latest ones and progress to the next workout milestone.', 'Body — your latest bodyweight with a mini trend. Tap it, or “All body stats”, to open Body.'] },
       { tip: 'The floating “Start or log” button lets you start a gym workout or log a run, swim or other activity. While a workout is running, a dark “Workout in progress” card takes its place.' }] },
+  { id: 'weekly-goal', section: 'Getting started', title: 'Your weekly goal & the rings', keywords: 'goal weekly target rings sessions per week average streak aim',
+    body: ['Your weekly goal is how many sessions a week you’re aiming for. It starts at 3 — change it any time.',
+      { steps: ['Tap the rings on Home (or Me → Workouts → Weekly goal).', 'Tap 1 to 7, or type your own number (up to 30 a week). It’s saved on your account, so it’s the same on all your devices.'] },
+      'The rings, from the outside in: your goal (green), your average sessions per week over up to the last 8 full weeks (gold), and this week so far. A full ring is 7 sessions — or more if your goal, average or this week is higher, so the three always stay comparable.',
+      'Your average appears once you’ve had a full week in the app. Gym workouts, runs, swims and other activities all count towards every ring.'] },
   { id: 'activity-grid', section: 'Getting started', title: 'The activity grid', keywords: 'activity grid heatmap calendar days github squares consistency', screens: [],
     body: ['The grid shows the last year, one square per day (Monday at the top), with the newest week on the right — swipe sideways to see earlier months.',
       'Darker squares mean more training that day: every set counts, and so does time spent on runs, swims and other activities (a 40-minute run counts about the same as 10 sets). The shades are based on your own training, so they adapt as you get busier.',
@@ -163,6 +168,9 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '2.6.0', date: '2026-09-29', items: [
+    'Set your own weekly goal: tap the rings on Home, or Me → Workouts → Weekly goal. Tap 1–7 or type any number up to 30. It starts at 3 sessions a week.',
+    'Home now has three rings: your goal (outside), your average week (middle) and this week so far (inside) — watch this week catch up with your goal.'] },
   { version: '2.5.0', date: '2026-09-29', items: [
     'The welcome tour now shows how to add the app to your Home Screen, with the steps for your phone (and a one-tap Install button where your browser allows it).',
     'Still using the app in your browser? You’ll see a one-time reminder with the steps.'] },
