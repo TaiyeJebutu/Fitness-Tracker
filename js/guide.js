@@ -118,6 +118,10 @@ export const TOPICS = [
   { id: 'add-friends', section: 'Friends', title: 'Add friends', keywords: 'friend request username add accept decline', screens: ['friends'],
     body: [{ steps: ['Friends → Friends tab.', 'Type your friend’s username and tap Add.', 'They accept the request on their Friends tab.'] },
       'Your username is shown there so you can share it. Only accepted friends see your workouts, routines and badges.'] },
+  { id: 'share-app', section: 'Friends', title: 'Share the app with friends', keywords: 'share invite friends link qr code whatsapp message send app',
+    body: ['Invite friends from Friends → Friends (“Invite friends”), Me (“Share the app”) or the top of Help & guide.',
+      { steps: ['Tap Share… to send the link and your username through WhatsApp, Messages or any other app.', 'Or tap “Copy link & message” and paste it anywhere.', 'With a friend next to you? Show the QR code — they scan it with their phone camera to open the app.'] },
+      'The message says: “I’m tracking my training on Fitness Tracker — a free app. Join me and add me as a friend: @yourname”, followed by the link. Once they’ve signed up, they add you by your username.'] },
   { id: 'feed', section: 'Friends', title: 'The feed', keywords: 'feed activity friends workouts badges', screens: ['feed'],
     body: ['Friends → Feed shows your friends’ finished workouts, runs, swims and other activities, and badges they’ve earned, newest first. Tap one to see the details.'] },
   { id: 'friend-page', section: 'Friends', title: 'A friend’s page & copying routines', keywords: 'copy routine friend page remove unfriend', screens: ['friend'],
@@ -168,6 +172,8 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '2.7.0', date: '2026-09-29', items: [
+    'Share the app: invite friends from the Friends tab, Me or Help — send it through any app, copy the link and message, or show a QR code to scan.'] },
   { version: '2.6.0', date: '2026-09-29', items: [
     'Set your own weekly goal: tap the rings on Home, or Me → Workouts → Weekly goal. Tap 1–7 or type any number up to 30. It starts at 3 sessions a week.',
     'Home now has three rings: your goal (outside), your average week (middle) and this week so far (inside) — watch this week catch up with your goal.'] },

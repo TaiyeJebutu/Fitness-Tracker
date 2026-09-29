@@ -8,6 +8,7 @@ import { renderBody } from './body.js';
 import { renderActivity, renderSport } from './cardio.js';
 import { showTour, queueTour, maybeShowTour } from './tour.js';
 import { maybeNudgeInstall } from './install.js';
+import { shareSheet } from './share.js';
 import { exportData, importData } from './backup.js';
 import { avatar, editAvatar } from './avatar.js';
 import { renderFeedback, renderPost } from './feedback.js';
@@ -182,7 +183,8 @@ function renderMe(root) {
     h('section', { class: 'card list-card' },
       [['#/history', 'calendar', 'Workout history'], ['#/exercises', 'train', 'Exercises'], ['#/feedback', 'heart', 'Feature requests & bug reports'], ['#/help', 'help', 'Help & guide']].map(([href, i, label]) =>
         h('a', { class: 'row gap', href }, h('span', { class: 'list-ico' }, ic(i, 18)), h('span', { class: 'grow' }, label), chev())),
-      h('a', { class: 'row gap', href: 'javascript:void 0', onclick: showTour }, h('span', { class: 'list-ico' }, ic('play', 18)), h('span', { class: 'grow' }, 'Replay the tutorial'), chev())),
+      h('a', { class: 'row gap', href: 'javascript:void 0', onclick: showTour }, h('span', { class: 'list-ico' }, ic('play', 18)), h('span', { class: 'grow' }, 'Replay the tutorial'), chev()),
+      h('a', { class: 'row gap', href: 'javascript:void 0', onclick: shareSheet }, h('span', { class: 'list-ico' }, ic('share', 18)), h('span', { class: 'grow' }, 'Share the app'), chev())),
     h('section', { class: 'card' },
       h('strong', {}, 'Sync'),
       h('p', { class: 'muted small' }, pending ? `${pending} change${pending > 1 ? 's' : ''} waiting to upload. They’ll send automatically when you’re online.` : 'Everything is saved to the server.'),

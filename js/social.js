@@ -6,6 +6,7 @@ import { avatar, profileById } from './avatar.js';
 import { checkBadges, earnedBy, badgeStrip, badgeFeedItems } from './badges.js';
 import { activityData, perDay, activityGrid } from './home.js';
 import { activityCard, fmtDist, hms, bestAt } from './cardio.js';
+import { shareSheet } from './share.js';
 import { h, mount, toast, confirmSheet, spinner, fmtW, fmtL, fmtBig, mondayStart, lineChart, toW, wUnit, currentPage, ic, chev } from './ui.js';
 
 // ---------- Feed + friends ----------------------------------------------
@@ -81,6 +82,9 @@ function friends(body, incoming) {
       h('input', { placeholder: 'Friend’s username', 'aria-label': 'Friend’s username', autocapitalize: 'off', autocomplete: 'off', 'data-noautofocus': '1', oninput: e => (name = e.target.value) }),
       h('button', { class: 'btn primary', type: 'submit' }, 'Add')),
     h('p', { class: 'muted small' }, `Your username is @${state.profile?.username || '…'} — share it with friends.`),
+    h('button', { class: 'card row gap invite-card', onclick: shareSheet },
+      h('span', { class: 'list-ico accent' }, ic('share', 18)),
+      h('span', { class: 'grow' }, h('strong', {}, 'Invite friends'), h('br'), h('span', { class: 'muted small' }, 'Send them the app with your username, or show a QR code')), chev()),
     incoming.length > 0 && [h('h2', {}, 'Requests'), incoming.map(r => h('div', { class: 'card row between' },
       h('span', { class: 'row gap' }, avatar(r.req, 32), h('strong', {}, '@' + r.req?.username)),
       h('div', { class: 'row gap' }, h('button', { class: 'btn small primary', onclick: () => accept(r) }, 'Accept'),

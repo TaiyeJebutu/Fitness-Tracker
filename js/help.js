@@ -4,6 +4,7 @@ import { state } from './store.js';
 import { TOPICS, SECTIONS, CHANGELOG, topicForScreen } from './guide.js';
 import { h, mount, sheet, fmtDay, ic, chev } from './ui.js';
 import { showTour } from './tour.js';
+import { shareSheet } from './share.js';
 
 const block = b => typeof b === 'string' ? h('p', {}, b)
   : b.steps ? h('ol', { class: 'guide-steps' }, b.steps.map(s => h('li', {}, s)))
@@ -50,6 +51,9 @@ export function renderHelp(root, id) {
       h('button', { class: 'card row gap tour-link', onclick: showTour },
         h('span', { class: 'list-ico accent' }, ic('play', 18)),
         h('span', { class: 'grow' }, h('strong', {}, 'Take the tour again'), h('br'), h('span', { class: 'muted small' }, 'A one-minute walkthrough of the app')), chev()),
+      h('button', { class: 'card row gap tour-link', onclick: shareSheet },
+        h('span', { class: 'list-ico accent' }, ic('share', 18)),
+        h('span', { class: 'grow' }, h('strong', {}, 'Share the app'), h('br'), h('span', { class: 'muted small' }, 'Invite friends — link, message or QR code')), chev()),
       h('a', { class: 'card row between whats-new-link', href: '#/help/whats-new' },
         h('span', {}, h('strong', {}, '✨ What’s new'), h('br'), h('span', { class: 'muted small' }, `You’re on v${window.APP_VERSION}`)), chev()),
       SECTIONS.map(s => {
