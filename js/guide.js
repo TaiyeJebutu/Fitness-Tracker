@@ -9,16 +9,16 @@ export const SECTIONS = ['Getting started', 'Workouts', 'Running, swimming & mor
 
 export const TOPICS = [
   // ---------- Getting started ----------
-  { id: 'install', section: 'Getting started', title: 'Put the app on your home screen', keywords: 'install pwa phone icon add to home screen',
-    body: ['The app works in any browser, but it feels best installed like a normal app.',
-      { steps: ['iPhone (Safari): tap the Share button, then “Add to Home Screen”.', 'Android (Chrome): tap ⋮, then “Install app” (or “Add to Home screen”).'] },
-      'Open it from the new icon from then on.'] },
+  { id: 'install', section: 'Getting started', title: 'Put the app on your home screen', keywords: 'install pwa phone icon add to home screen app full screen offline',
+    body: ['The app works in any browser, but it’s best on your Home Screen: it opens full-screen with one tap, like a normal app, and works without signal.',
+      { steps: ['iPhone: tap the Share button (the square with an arrow — at the bottom of Safari, or top right in other browsers), scroll down, tap “Add to Home Screen”, then Add.', 'Android: tap the menu ⋮ at the top right of Chrome, then “Install app” (or “Add to Home screen”), then Install. Some phones show an Install app button in the tour that does it in one tap.'] },
+      'Open it from the new icon from then on. The welcome tour shows the steps for your phone, and if you’re still using the browser the app shows a one-time reminder.'] },
   { id: 'tabs', section: 'Getting started', title: 'Finding your way around', keywords: 'tabs menu navigation bottom bar',
     body: ['The bar at the bottom has five tabs:',
       { steps: ['Home: your dashboard — streak, activity grid, this week, trends, records, badges and bodyweight (tap it for all body stats).', 'Train: start gym workouts, log runs, swims and other activities, your routines and recent training.', 'Friends: your friends’ workouts and badges, and friend requests.', 'Ranks: leaderboards for you and your friends — lifting, running, swimming and activity.', 'Me: your profile, avatar, badges, exercises, settings, backup and feedback.'] },
       { tip: 'The help button (the circled question mark) at the top opens help for the screen you’re on. Tap the logo to jump back to Home.' }] },
   { id: 'tutorial', section: 'Getting started', title: 'The welcome tour', keywords: 'tutorial tour walkthrough intro introduction onboarding replay how to use start',
-    body: ['A short swipe-through tour opens the first time you sign in after creating an account. It covers the tabs, gym workouts, runs and swims, and friends, ranks and badges.',
+    body: ['A short swipe-through tour opens the first time you sign in after creating an account. It covers adding the app to your Home Screen, the tabs, gym workouts, runs and swims, and friends, ranks and badges.',
       { steps: ['Swipe or tap Next to move through it; Back goes to the previous card.', 'Tap Skip at any time to close it.', 'To see it again, tap “Take the tour again” at the top of Help & guide, or “Replay the tutorial” on the Me tab.'] }] },
   { id: 'offline', section: 'Getting started', title: 'Using it with no signal', keywords: 'offline internet wifi signal sync upload gym basement',
     body: ['You can log a whole workout with no signal. Everything is saved on your phone and uploads automatically when you’re back online.',
@@ -163,6 +163,9 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '2.5.0', date: '2026-09-29', items: [
+    'The welcome tour now shows how to add the app to your Home Screen, with the steps for your phone (and a one-tap Install button where your browser allows it).',
+    'Still using the app in your browser? You’ll see a one-time reminder with the steps.'] },
   { version: '2.4.0', date: '2026-09-28', items: [
     'New Timer button during workouts for warm-ups, stretches or anything else: tap 30 s, 1, 1:30, 2 or 3 min, or choose your own time.',
     'Timers now keep your screen on while they run, so the beep actually goes off (phones pause web apps when the screen turns off). You can switch this off under Me → Workouts.'] },

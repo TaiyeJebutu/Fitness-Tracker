@@ -7,6 +7,7 @@ import { renderFeed, renderFriend, renderRanks } from './social.js';
 import { renderBody } from './body.js';
 import { renderActivity, renderSport } from './cardio.js';
 import { showTour, queueTour, maybeShowTour } from './tour.js';
+import { maybeNudgeInstall } from './install.js';
 import { exportData, importData } from './backup.js';
 import { avatar, editAvatar } from './avatar.js';
 import { renderFeedback, renderPost } from './feedback.js';
@@ -20,6 +21,7 @@ const restbar = h('div', { id: 'restbar', class: 'restbar', hidden: true });
 const syncDot = h('span', { class: 'sync', title: '' });
 const helpBtn = h('button', { class: 'icon-btn help-btn', 'aria-label': 'Help for this screen', title: 'Help', onclick: () => { location.hash = helpHref(); } }, ic('help', 21));
 const updateBar = h('button', { class: 'update-banner', hidden: true, onclick: applyUpdate });
+const installBar = h('div', { class: 'install-nudge', hidden: true, role: 'region', 'aria-label': 'Install the app' });
 
 const NAV = [['#/', 'Home', 'home'], ['#/train', 'Train', 'train'], ['#/feed', 'Friends', 'friends'], ['#/ranks', 'Ranks', 'ranks'], ['#/me', 'Me', 'me']];
 const nav = h('nav', { class: 'tabbar', 'aria-label': 'Main' },
@@ -251,10 +253,11 @@ async function boot() {
   setTimeout(checkBadges, 1500);
   setTimeout(maybeShowWhatsNew, 800);
   maybeShowTour();   // first sign-in after creating an account
+  setTimeout(() => maybeNudgeInstall(installBar), 2500);
 }
 
 function mountShell() {
-  mount(app, h('header', { class: 'topbar' }, h('a', { class: 'brand', href: '#/' }, logoMark(28), 'Fitness Tracker'), h('span', { class: 'row gap' }, syncDot, helpBtn)), updateBar, restbar, view, nav);
+  mount(app, h('header', { class: 'topbar' }, h('a', { class: 'brand', href: '#/' }, logoMark(28), 'Fitness Tracker'), h('span', { class: 'row gap' }, syncDot, helpBtn)), updateBar, installBar, restbar, view, nav);
 }
 
 // ---------- updates ------------------------------------------------------

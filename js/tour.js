@@ -1,6 +1,7 @@
 // First-run tutorial: a few swipeable cards. Shown once after signing up, and any time
 // from Help & guide ("Take the tour again") or Me ("Replay the tutorial").
 import { h, ic, logoMark, haptic } from './ui.js';
+import { installContent, markNudged } from './install.js';
 
 const PENDING = 'ft.tourPending';
 /** Ask for the tour to open after the next sign-in (used right after creating an account). */
@@ -21,6 +22,7 @@ const setRow = (n, kg, reps, done) => h('div', { class: 'tour-set' + (done ? ' d
 const CARDS = [
   { title: 'Welcome to Fitness Tracker', text: 'Track gym workouts, runs, swims and more, and keep each other going with friends. It’s free, with no ads. Here’s a quick tour.',
     art: () => mini(h('div', { class: 'tour-logo' }, logoMark(84))) },
+  { install: true },
   { title: 'Find your way around', text: 'Five tabs along the bottom. Home is your dashboard: your weekly streak ring, a grid of every day you trained, and this week’s numbers.',
     art: () => mini(h('div', { class: 'tour-ring' }, h('b', {}, '4'), h('span', {}, 'week streak')),
       h('div', { class: 'tour-grid' }, Array.from({ length: 28 }, (_, i) => h('i', { class: 'hm' + [0, 2, 0, 3, 1, 0, 0, 1, 0, 4, 0, 2, 0, 0, 2, 0, 3, 0, 1, 0, 0, 0, 4, 0, 2, 3, 0, 1][i] }))),
@@ -39,15 +41,19 @@ const CARDS = [
     art: () => mini(h('div', { class: 'tour-board' }, [['1', '@you', '142 kg'], ['2', '@sam', '130 kg'], ['3', '@alex', '118 kg']]
       .map(([r, n, v], i) => h('div', { class: i === 0 ? 'me' : '' }, h('b', {}, r), h('span', {}, n), h('em', {}, v)))),
       h('div', { class: 'tour-badges' }, ['🎉', '🔥', '🏃', '🏅'].map(e => h('span', {}, e)))) },
-  { title: 'Help is always there', text: 'Tap the question mark at the top of any screen for help with it. You can replay this tour from Help & guide or the Me tab. Tip: add the app to your home screen so it works like a normal app, even offline.',
+  { title: 'Help is always there', text: 'Tap the question mark at the top of any screen for help with it — including how to add the app to your Home Screen. You can replay this tour from Help & guide or the Me tab.',
     art: () => mini(h('div', { class: 'tour-help' }, ic('help', 34)), h('div', { class: 'tour-btn ghost' }, ic('play', 16), 'Take the tour again')) },
 ];
 
 export function showTour() {
   if (document.querySelector('.tour')) return;
   let i = 0;
-  const track = h('div', { class: 'tour-track' }, CARDS.map((c, n) => h('section', { class: 'tour-card-page', 'aria-roledescription': 'slide', 'aria-label': `${n + 1} of ${CARDS.length}` },
-    c.art(), h('h2', {}, c.title), h('p', {}, c.text))));
+  markNudged();   // the tour covers installing, so no separate nudge afterwards
+  const page = (c, n, ...kids) => h('section', { class: 'tour-card-page', 'aria-roledescription': 'slide', 'aria-label': `${n + 1} of ${CARDS.length}` }, ...kids);
+  const track = h('div', { class: 'tour-track' }, CARDS.map((c, n) => {
+    if (c.install) { const x = installContent(); return page(c, n, mini(x.art), h('h2', {}, x.title), h('div', { class: 'tour-body' }, x.body)); }
+    return page(c, n, c.art(), h('h2', {}, c.title), h('p', {}, c.text));
+  }));
   const dots = h('div', { class: 'tour-dots', 'aria-hidden': 'true' }, CARDS.map(() => h('i')));
   const next = h('button', { class: 'btn primary block big' }, 'Next');
   const back = h('button', { class: 'btn ghost tour-back', 'aria-label': 'Previous' }, ic('back', 18), 'Back');

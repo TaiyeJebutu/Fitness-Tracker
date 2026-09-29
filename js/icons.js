@@ -30,6 +30,8 @@ const P = {
   run: '<circle cx="15" cy="4.8" r="1.9"/><path d="M8.5 9.2 11.8 7.6l3 2.3 2.4.6M11.8 7.6l-1.6 5.7 3.2 2.6-.9 4.6M10.2 13.3l-2.4 3.1H4.8"/>',
   swim: '<circle cx="16.5" cy="6.8" r="1.9"/><path d="M4 13c2.3-2.6 5-4 8-4l2.4 2.8M3 17.5c1.5 1.2 3 1.2 4.5 0s3-1.2 4.5 0 3 1.2 4.5 0 3-1.2 4.5 0"/>',
   pulse: '<path d="M3 12h4l2.5-6 5 12 2.5-6H21"/>',
+  share: '<path d="M12 3.5v11M8 7.5l4-4 4 4"/><path d="M8 10.5H6.5A1.5 1.5 0 0 0 5 12v7a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-7a1.5 1.5 0 0 0-1.5-1.5H16"/>',
+  kebab: '<circle cx="12" cy="6" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="18" r="1.3" fill="currentColor"/>',
   sync: '<path d="M19 12a7 7 0 0 1-12.5 4.3M5 12a7 7 0 0 1 12.5-4.3M17.5 4v3.7h-3.7M6.5 20v-3.7h3.7"/>',
 };
 export const ICON_NAMES = Object.keys(P);
