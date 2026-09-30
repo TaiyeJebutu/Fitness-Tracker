@@ -635,3 +635,37 @@ svg.hm rect.sel { stroke: var(--ink); stroke-width: 2; }
 .qr-box svg { display: block; width: 200px; height: 200px; }
 .share-msg { background: var(--surface-2); border-radius: var(--r); padding: 12px 14px; margin: 12px 0 6px; font-size: .9rem; font-weight: 600; line-height: 1.45; user-select: text; -webkit-user-select: text; }
 .share-url { color: var(--accent); font-weight: 700; word-break: break-all; }
+
+/* ---------- weekly plan (v2.8) ---------- */
+.plan-card { padding: 14px 14px 8px; }
+.plan-head { align-items: center; margin: 0 0 6px 4px; }
+.plan-head .icon-btn { min-width: 38px; min-height: 38px; }
+.plan-day { display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--line); }
+.plan-day-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 7px 4px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 12px; }
+.plan-day-main:active { background: var(--surface-2); }
+.plan-day-main .chev { margin-left: auto; color: var(--faint); }
+.plan-dow { width: 38px; flex: none; display: grid; justify-items: center; line-height: 1.1; }
+.plan-dow b { font-size: .82rem; font-weight: 800; }
+.plan-dow small { font-size: .72rem; color: var(--muted); font-weight: 600; }
+.plan-day.today .plan-dow { background: var(--accent); color: var(--accent-ink); border-radius: 11px; padding: 4px 0; }
+.plan-day.today .plan-dow small { color: inherit; opacity: .85; }
+.plan-chips { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 5px; }
+.plan-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px 4px 8px; border-radius: 999px; background: var(--surface-2); font-size: .8rem; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plan-chip.done { background: var(--accent-soft); color: var(--accent); }
+.plan-chip.missed { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--faint); }
+.plan-chip.extra { font-weight: 600; }
+.plan-rest { font-size: .82rem; color: var(--faint); font-weight: 600; }
+.plan-day.past .plan-dow { opacity: .6; }
+.plan-go { flex: none; min-height: 36px; padding: 0 12px; }
+.plan-items { margin: 4px 0 6px; }
+.plan-item { display: flex; align-items: center; gap: 12px; min-height: 52px; border-bottom: 1px solid var(--line); }
+.plan-item:last-child { border-bottom: 0; }
+.plan-item.done .grow { color: var(--muted); }
+.plan-note { margin: -4px 0 6px; }
+.plan-label { margin: 4px 0 12px; align-items: stretch; }
+.plan-label input { flex: 1; margin: 0; }
+.link-inline { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.today-card { padding-bottom: 8px; }
+.today-card > .row { margin-bottom: 2px; }
+.goal-plan-note { background: var(--accent-soft); color: var(--text); border-radius: var(--r); padding: 10px 12px; font-weight: 600; }
+.plan-sheet .chip { gap: 6px; }

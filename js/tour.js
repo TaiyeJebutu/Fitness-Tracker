@@ -23,7 +23,7 @@ const CARDS = [
   { title: 'Welcome to Fitness Tracker', text: 'Track gym workouts, runs, swims and more, and keep each other going with friends. It’s free, with no ads. Here’s a quick tour.',
     art: () => mini(h('div', { class: 'tour-logo' }, logoMark(84))) },
   { install: true },
-  { title: 'Find your way around', text: 'Five tabs along the bottom. Home is your dashboard: your streak and weekly goal rings (tap them to set your goal), a grid of every day you trained, and this week’s numbers.',
+  { title: 'Find your way around', text: 'Five tabs along the bottom. Home is your dashboard: your streak and weekly goal rings, your plan for the week (tap a day to plan it), a grid of every day you trained, and this week’s numbers.',
     art: () => mini(h('div', { class: 'tour-ring' }, h('b', {}, '4'), h('span', {}, 'week streak')),
       h('div', { class: 'tour-grid' }, Array.from({ length: 28 }, (_, i) => h('i', { class: 'hm' + [0, 2, 0, 3, 1, 0, 0, 1, 0, 4, 0, 2, 0, 0, 2, 0, 3, 0, 1, 0, 0, 0, 4, 0, 2, 3, 0, 1][i] }))),
       tabs('Home')) },

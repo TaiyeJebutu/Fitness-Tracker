@@ -3,12 +3,13 @@ import * as api from './api.js';
 import { state, loadExercises, loadRoutines, METRICS, metricOk } from './store.js';
 import { h, mount, toast, sheet, confirmSheet, fmtDay } from './ui.js';
 import { activityOk } from './cardio.js';
+import { loadPlan, cleanPlanItems } from './plan.js';
 
 // ---------- export ---------------------------------------------------------
 export async function exportData() {
   const uid = api.userId();
   try {
-    const [profile, workouts, sets, routines, body, details, exercises, activities] = await Promise.all([
+    const [profile, workouts, sets, routines, body, details, exercises, activities, plan] = await Promise.all([
       api.get(`profiles?id=eq.${uid}&select=username,units,shared_metrics`, { cache: false }),
       api.getAll(`workouts?owner=eq.${uid}&select=*&order=started_at.asc`),
       api.getAll(`sets?owner=eq.${uid}&select=*&order=created_at.asc`),
@@ -17,6 +18,7 @@ export async function exportData() {
       api.getAll(`exercise_details?user_id=eq.${uid}&select=*`),
       api.getAll(`exercises?owner=eq.${uid}&select=*`),
       api.getAll(`activities?owner=eq.${uid}&select=*&order=started_at.asc`).catch(() => []),
+      api.get(`training_plans?owner=eq.${uid}&select=template,weeks`, { cache: false }).catch(() => []),
     ]);
     const byWorkout = new Map();
     for (const s of sets) byWorkout.set(s.workout_id, [...(byWorkout.get(s.workout_id) || []), s]);
@@ -24,7 +26,7 @@ export async function exportData() {
     const data = { app: 'fitness-tracker', version: 1, exported_at: new Date().toISOString(),
       note: 'Weights in kg, lengths in cm, activity distances in metres and times in seconds.', profile: profile[0], exercise_names: names,
       custom_exercises: exercises, routines, workouts: workouts.map(w => ({ ...w, sets: byWorkout.get(w.id) || [] })),
-      body_metrics: body, exercise_details: details, activities };
+      body_metrics: body, exercise_details: details, activities, plan: plan[0] || null };
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
     const a = h('a', { href: url, download: `fitness-backup-${new Date().toISOString().slice(0, 10)}.json` });
     document.body.append(a); a.click(); a.remove();
@@ -140,8 +142,15 @@ async function runImport(d, mode, progress) {
   progress('Adding body stats…');  await api.bulkUpsert('body_metrics', body, ow);
   if (acts.length) { progress('Adding runs, swims & activities…'); await api.bulkUpsert('activities', acts, ow); }
   progress('Adding exercise settings…'); await api.bulkUpsert('exercise_details', details, ow, 'user_id,exercise_id');
+  // weekly plan: restored when replacing, or when you don't have one yet (routines point at their new ids)
+  if (d.plan && Array.isArray(d.plan.template) && d.plan.template.length === 7) {
+    const fix = days => days.map(items => cleanPlanItems(items, routineMap));
+    const weeks = {};
+    for (const [k, v] of Object.entries(d.plan.weeks || {})) if (/^\d{4}-\d{2}-\d{2}$/.test(k) && Array.isArray(v) && v.length === 7) weeks[k] = fix(v);
+    await api.bulkUpsert('training_plans', [{ owner: uid, template: fix(d.plan.template), weeks, updated_at: now }], ow, 'owner').catch(() => {});
+  }
   Object.keys(localStorage).filter(k => k.startsWith('ft.cache.') || k.startsWith('ft.details.')).forEach(k => api.LS.del(k));
-  await Promise.all([loadExercises(), loadRoutines()]).catch(() => {});
+  await Promise.all([loadExercises(), loadRoutines(), loadPlan()]).catch(() => {});
   return { workouts: workouts.length, sets: sets.length, routines: routines.length, body: body.length, activities: acts.length, details: details.length, newExercises: newExercises.length };
 }
 

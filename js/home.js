@@ -5,6 +5,7 @@ import { active } from './workout.js';
 import { avatar } from './avatar.js';
 import { earnedBy, badgeStrip } from './badges.js';
 import { fmtMetric } from './social.js';
+import { loadPlan, planCard, plannedCount, toSessions } from './plan.js';
 import { chooseActivity, activityName, fmtDist, KINDS, hmShort } from './cardio.js';
 import { h, svg, mount, spinner, toast, fmtW, fmtBig, fmtDay, fmtDate, mondayStart, e1rm, toW, wUnit, ago, ic, sheet, currentPage } from './ui.js';
 
@@ -19,7 +20,7 @@ export async function activityData(uid, { withSets = true } = {}) {
   const key = 'ft.dash.' + uid;
   try {
     const [workouts, sets, activities] = await Promise.all([
-      api.getAll(`workouts?owner=eq.${uid}&ended_at=not.is.null&select=id,name,started_at,ended_at&order=started_at.asc`),
+      api.getAll(`workouts?owner=eq.${uid}&ended_at=not.is.null&select=id,name,routine_id,started_at,ended_at&order=started_at.asc`),
       withSets ? api.getAll(`sets?owner=eq.${uid}&select=workout_id,exercise_id,reps,weight_kg,created_at&order=created_at.asc`) : [],
       api.getAll(`activities?owner=eq.${uid}&select=id,kind,sport,title,started_at,duration_s,distance_m&order=started_at.asc`).catch(() => [])]);
     const data = { workouts, sets, activities };
@@ -154,7 +155,7 @@ const tile = (label, value, delta, goodUp = true) => h('div', { class: 'stat til
 /** Three rings on one scale: outer = your goal, middle = your average, inner = this week.
  *  A full ring is 7 sessions, or more if the goal, average or this week is higher, so the rings stay comparable. */
 export const GOAL_MAX = 30;
-function streakCard(streak, done, goal, avg, thisWeek) {
+function streakCard(streak, done, goal, avg, thisWeek, fromPlan = false) {
   const MAX = Math.max(7, goal, Math.ceil(avg || 0), done);
   const ring = (r, v, cls) => {
     const C = 2 * Math.PI * r;
@@ -163,16 +164,17 @@ function streakCard(streak, done, goal, avg, thisWeek) {
     return [svg('circle', { cx: 52, cy: 52, r, fill: 'none', 'stroke-width': 8, class: 'track' }), prog];
   };
   const avgTxt = avg == null ? 'after your first full week' : String(Math.round(avg * 10) / 10);
-  const note = done >= goal ? 'Goal reached this week. Lovely work.'
-    : `${goal - done} more session${goal - done === 1 ? '' : 's'} to hit your goal`;
-  return h('button', { class: 'card streak-card rings-card', onclick: () => goalSheet(), 'aria-label': `Weekly goal ${goal}. Your average ${avgTxt}. This week ${done}. Tap to change your goal.` },
+  const left = goal - done;
+  const note = done >= goal ? (fromPlan ? 'This week’s plan is done. Lovely work.' : 'Goal reached this week. Lovely work.')
+    : fromPlan ? `${left} more planned session${left === 1 ? '' : 's'} this week` : `${left} more session${left === 1 ? '' : 's'} to hit your goal`;
+  return h('button', { class: 'card streak-card rings-card', onclick: () => goalSheet(), 'aria-label': `Weekly goal ${goal}${fromPlan ? ', from your plan' : ''}. Your average ${avgTxt}. This week ${done}. Tap to change your goal.` },
     h('div', { class: 'ring rings', 'aria-hidden': 'true' },
       svg('svg', { width: 104, height: 104, viewBox: '0 0 104 104' }, ring(44, goal, 'goal'), ring(33, avg || 0, 'avg'), ring(22, done, 'now'))),
     h('div', { class: 'rings-info' },
       h('div', { class: 'title' }, streak ? `${streak}-week streak` : 'No streak yet'),
       h('div', { class: 'small streak-note' }, streak || thisWeek ? note : 'Train this week to start a streak.'),
       h('div', { class: 'ring-legend' },
-        h('span', {}, h('i', { class: 'goal' }), `Goal · ${goal} a week`),
+        h('span', {}, h('i', { class: 'goal' }), fromPlan ? `Goal · ${goal} planned` : `Goal · ${goal} a week`),
         h('span', {}, h('i', { class: 'avg' }), `Your average · ${avgTxt}`),
         h('span', {}, h('i', { class: 'now' }), `This week · ${done}`))));
 }
@@ -191,6 +193,7 @@ export function goalSheet(onSaved) {
     };
     let custom = cur > 7 ? String(cur) : '';
     return h('div', {},
+    plannedCount(0) > 0 && h('p', { class: 'goal-plan-note small' }, `This week your goal follows your plan: ${plannedCount(0)} session${plannedCount(0) === 1 ? '' : 's'}. The number below is used for weeks with nothing planned.`),
     h('p', { class: 'muted small' }, 'How many sessions a week are you aiming for? Gym workouts, runs, swims and other activities all count.'),
     h('div', { class: 'goal-pick', role: 'radiogroup', 'aria-label': 'Sessions a week' }, [1, 2, 3, 4, 5, 6, 7].map(n =>
       h('button', { class: 'goal-btn' + (n === cur ? ' on' : ''), role: 'radio', 'aria-checked': String(n === cur), 'aria-label': `${n} a week`, onclick: () => save(n) }, n))),
@@ -220,7 +223,7 @@ export async function renderHome(root) {
     body);
 
   let data;
-  try { data = await activityData(api.userId()); }
+  try { [data] = await Promise.all([activityData(api.userId()), loadPlan()]); }
   catch (e) { mount(body, h('p', { class: 'muted' }, e.message)); return; }
   const { workouts, sets } = data;
   const acts = data.activities || [];
@@ -252,7 +255,9 @@ export async function renderHome(root) {
   const first = all.length ? mondayStart(new Date(Math.min(...all.map(w => +new Date(w.started_at))))) : null;
   const fullWeeks = first ? Math.min(8, Math.round((+wk0 - +first) / (7 * DAY))) : 0;
   const avg = fullWeeks > 0 ? all.filter(w => inRange(w.started_at, addDays(wk0, -7 * fullWeeks), wk0)).length / fullWeeks : null;
-  const goal = me.weekly_goal || 3;
+  // your goal: the number of sessions planned for this week, or your own number when nothing is planned
+  const goalNow = () => plannedCount(0) || me.weekly_goal || 3;
+  const goal = goalNow();
 
   // ---- weekly volume, last 12 weeks
   const volWeeks = Array.from({ length: 12 }, (_, i) => addDays(wk0, -7 * (11 - i)));
@@ -294,8 +299,11 @@ export async function renderHome(root) {
   const bwDelta = bwLatest && bw30 ? toW(bwLatest.value - bw30.value) : null;
   const bwDef = METRICS.find(m => m.key === 'bodyweight');
 
+  const ringsBox = h('div', {}, streakCard(streak, cur.w, goal, avg, weeksWith.has(0), plannedCount(0) > 0));
+  const plan = planCard(toSessions(workouts, acts), () => mount(ringsBox, streakCard(streak, cur.w, goalNow(), avg, weeksWith.has(0), plannedCount(0) > 0)));
   mount(body,
-    streakCard(streak, cur.w, goal, avg, weeksWith.has(0)),
+    ringsBox,
+    plan,
 
     h('h2', {}, 'Activity'),
     h('section', { class: 'card' }, activityGrid(days)),

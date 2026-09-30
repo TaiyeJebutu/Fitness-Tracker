@@ -14,6 +14,7 @@ import { avatar, editAvatar } from './avatar.js';
 import { renderFeedback, renderPost } from './feedback.js';
 import { renderHelp, helpHref, maybeShowWhatsNew } from './help.js';
 import { renderHome, setShareActivity, goalSheet } from './home.js';
+import { loadPlan, plannedCount } from './plan.js';
 import { renderBadges, checkBadges, earnedBy, badgeStrip, TOTAL } from './badges.js';
 
 const app = document.getElementById('app');
@@ -164,7 +165,7 @@ function renderMe(root) {
     h('section', { class: 'card' },
       h('strong', {}, 'Workouts'),
       h('button', { class: 'row between goal-row', onclick: () => goalSheet(() => renderMe(root)) },
-        h('span', {}, 'Weekly goal'), h('span', { class: 'row gap' }, h('strong', {}, `${p.weekly_goal || 3} a week`), chev())),
+        h('span', {}, 'Weekly goal'), h('span', { class: 'row gap' }, h('strong', {}, plannedCount(0) ? `${plannedCount(0)} (your plan)` : `${p.weekly_goal || 3} a week`), chev())),
       h('label', { class: 'switch', style: { marginTop: '8px' } },
         h('input', { type: 'checkbox', checked: showRir(), onchange: e => { setShowRir(e.target.checked); toast(e.target.checked ? 'Reps in reserve on' : 'Reps in reserve off'); } }),
         h('span', {}, 'Log reps in reserve (RIR)')),
@@ -249,7 +250,7 @@ async function boot() {
   setUnits(state.profile?.units);
   mountShell();
   await Promise.all([loadProfile().catch(() => {}), loadExercises().catch(() => {})]);
-  loadRoutines().catch(() => {}); loadFriends().catch(() => {});
+  loadRoutines().catch(() => {}); loadFriends().catch(() => {}); loadPlan().catch(() => {});
   api.flush();
   route();
   tickRest();

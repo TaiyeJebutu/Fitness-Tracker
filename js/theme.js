@@ -1,5 +1,5 @@
 // Loaded before the page draws: app version + the viewer's colour scheme (saved on this device).
-window.APP_VERSION = '2.7.0';
+window.APP_VERSION = '2.8.0';
 
 (function () {
   const KEY = 'ft.theme';

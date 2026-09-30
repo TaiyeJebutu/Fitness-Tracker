@@ -28,13 +28,21 @@ export const TOPICS = [
 
   { id: 'dashboard', section: 'Getting started', title: 'Your Home dashboard', keywords: 'home dashboard stats streak this week trends volume records pr body areas', screens: [''],
     body: ['Home is your dashboard. From top to bottom:',
-      { steps: ['Streak & rings — how many weeks in a row you’ve trained, and three rings: the outer one is your weekly goal, the middle one your average sessions per week (over up to the last 8 full weeks), and the inner one this week so far. A full ring is 7 sessions (or more, if you train more), so you can watch this week catch up with your goal. Gym workouts, runs, swims and other activities all count.', 'Activity — a grid of every day (see “The activity grid”).', 'This week — sessions (gym workouts plus runs, swims and other activities), sets, volume and time, compared with the same point last week.', 'Running, swimming & more — this week’s distance or time for each kind of activity you log. Tap one for its stats and personal bests.', 'Trends — your weekly volume for the last 12 weeks (tap a column for its value), and which body areas you trained in the last 30 days.', 'Recent personal records — sets that beat your previous best estimated 1-rep max.', 'Badges — your latest ones and progress to the next workout milestone.', 'Body — your latest bodyweight with a mini trend. Tap it, or “All body stats”, to open Body.'] },
+      { steps: ['Streak & rings — how many weeks in a row you’ve trained, and three rings: the outer one is your weekly goal (the number of sessions you’ve planned, if you have a plan), the middle one your average sessions per week (over up to the last 8 full weeks), and the inner one this week so far. A full ring is 7 sessions (or more, if you train more), so you can watch this week catch up with your goal. Gym workouts, runs, swims and other activities all count.', 'This week’s plan — the sessions you’ve planned for each day, ticked off as you do them (see “Plan your week”).', 'Activity — a grid of every day (see “The activity grid”).', 'This week — sessions (gym workouts plus runs, swims and other activities), sets, volume and time, compared with the same point last week.', 'Running, swimming & more — this week’s distance or time for each kind of activity you log. Tap one for its stats and personal bests.', 'Trends — your weekly volume for the last 12 weeks (tap a column for its value), and which body areas you trained in the last 30 days.', 'Recent personal records — sets that beat your previous best estimated 1-rep max.', 'Badges — your latest ones and progress to the next workout milestone.', 'Body — your latest bodyweight with a mini trend. Tap it, or “All body stats”, to open Body.'] },
       { tip: 'The floating “Start or log” button lets you start a gym workout or log a run, swim or other activity. While a workout is running, a dark “Workout in progress” card takes its place.' }] },
   { id: 'weekly-goal', section: 'Getting started', title: 'Your weekly goal & the rings', keywords: 'goal weekly target rings sessions per week average streak aim',
     body: ['Your weekly goal is how many sessions a week you’re aiming for. It starts at 3 — change it any time.',
       { steps: ['Tap the rings on Home (or Me → Workouts → Weekly goal).', 'Tap 1 to 7, or type your own number (up to 30 a week). It’s saved on your account, so it’s the same on all your devices.'] },
       'The rings, from the outside in: your goal (green), your average sessions per week over up to the last 8 full weeks (gold), and this week so far. A full ring is 7 sessions — or more if your goal, average or this week is higher, so the three always stay comparable.',
-      'Your average appears once you’ve had a full week in the app. Gym workouts, runs, swims and other activities all count towards every ring.'] },
+      'Your average appears once you’ve had a full week in the app. Gym workouts, runs, swims and other activities all count towards every ring.',
+      { tip: 'If you’ve planned your week, your goal follows the plan automatically: plan 4 sessions and your goal is 4. The number you set here is used for weeks with nothing planned.' }] },
+  { id: 'plan-week', section: 'Getting started', title: 'Plan your week', keywords: 'plan schedule week weekly calendar day days planner routine rest day monday sessions timetable', screens: [],
+    body: ['Plan which sessions you’ll do on which day — no times needed. You’ll see the plan on Home and today’s sessions at the top of Train.',
+      { steps: ['On Home, find “This week’s plan” and tap a day.', 'Add sessions: one of your routines, a run, a swim, another sport (Other…), or type your own, like “Upper body”. You can add more than one per day.', 'Choose “Every week” to change your usual week (it repeats automatically), or “This week only” for a one-off change. Tap the × next to a session to remove it.', 'Tap Done.'] },
+      'Sessions get a tick as you do them: a routine is ticked when you finish a workout started from it (or with the same name), a run or swim when you log one that day, and your own sessions by anything you do that day. Past sessions you missed are crossed out.',
+      'Today’s sessions have a Start (or Log) button, on Home and on Train. Use the arrows on the plan card to look at last week or plan up to three weeks ahead.',
+      { tip: 'Changed a week and want your usual plan back? Tap a day in that week, choose “This week only”, then “Go back to your usual week”.' },
+      'Your plan is private — friends can’t see it. It also sets your weekly goal (see “Your weekly goal & the rings”).'] },
   { id: 'activity-grid', section: 'Getting started', title: 'The activity grid', keywords: 'activity grid heatmap calendar days github squares consistency', screens: [],
     body: ['The grid shows the last year, one square per day (Monday at the top), with the newest week on the right — swipe sideways to see earlier months.',
       'Darker squares mean more training that day: every set counts, and so does time spent on runs, swims and other activities (a 40-minute run counts about the same as 10 sets). The shades are based on your own training, so they adapt as you get busier.',
@@ -44,6 +52,7 @@ export const TOPICS = [
   // ---------- Workouts ----------
   { id: 'start-workout', section: 'Workouts', title: 'Start a workout', keywords: 'begin train empty session', screens: ['train'],
     body: [{ steps: ['Go to Train (or tap the floating “Start workout” button on Home).', 'Tap “Start” next to a routine — its exercises are filled in for you — or “Start empty workout” to add exercises as you go.', 'Use “+ Add exercise” to add more. Search, filter by body area, or type a new name to create one.'] },
+      'If you’ve planned today (see “Plan your week”), a “Today’s plan” card at the top of Train has a Start button for each session.',
       'If you leave the app mid-workout, the Train tab changes to “Workout” and a “Resume” card takes you back.'] },
   { id: 'log-sets', section: 'Workouts', title: 'Log sets (and “Last” numbers)', keywords: 'set reps weight tick log previous last time prefill', screens: ['workout'],
     body: ['The big clock at the top shows how long you’ve been training, with a line underneath counting exercises done and sets logged.', 'Each exercise has a row per set: weight, reps and a tick button.',
@@ -152,7 +161,7 @@ export const TOPICS = [
 
   // ---------- Backup ----------
   { id: 'backup', section: 'Backup', title: 'Export & import your data', keywords: 'backup export import restore file download move account',
-    body: ['Me → Backup → “Export my data” downloads everything (workouts, runs, swims and other activities, routines, body stats, exercise settings) as a file. Keep a copy now and then.',
+    body: ['Me → Backup → “Export my data” downloads everything (workouts, runs, swims and other activities, routines, your weekly plan, body stats, exercise settings) as a file. Keep a copy now and then.',
       '“Import a backup” restores a file. You choose what happens if something already exists:',
       { steps: ['Keep what I have — only adds what’s missing (safe to run twice).', 'Backup wins — adds what’s missing and replaces your current versions.', 'Replace everything — deletes your current data first, then restores the file (asks you to confirm).'] },
       'You can import into a different account too, e.g. to move your history.'] },
@@ -172,6 +181,11 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '2.8.0', date: '2026-09-30', items: [
+    'Plan your week: on Home, tap a day in “This week’s plan” to add the sessions you’ll do — routines, runs, swims, other sports or your own. No times needed.',
+    'Your usual week repeats automatically, and you can change any single week on its own.',
+    'Sessions tick off as you do them, and today’s plan is at the top of Train with a Start button.',
+    'Planned a week? Your weekly goal now follows it automatically.'] },
   { version: '2.7.0', date: '2026-09-29', items: [
     'Share the app: invite friends from the Friends tab, Me or Help — send it through any app, copy the link and message, or show a QR code to scan.'] },
   { version: '2.6.0', date: '2026-09-29', items: [

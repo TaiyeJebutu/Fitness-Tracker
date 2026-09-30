@@ -5,6 +5,7 @@ import { active, startWorkout, pickExercise, editDetails, detailsSummary, exerci
 import { details, setUnilateral, updateExercise, deleteExercise, CATEGORIES } from './store.js';
 import { avatar } from './avatar.js';
 import { logActivity, activityCard, loadActivities, KINDS } from './cardio.js';
+import { loadPlan, todayCard, sessionsSince } from './plan.js';
 import { h, mount, toast, sheet, confirmSheet, fmtW, fmtDate, fmtDay, duration, ago, spinner, lineChart, e1rm, toW, wUnit, ic, rirText } from './ui.js';
 
 // ---------- Train home ---------------------------------------------------
@@ -16,6 +17,7 @@ export async function renderTrain(root) {
       a && h('a', { class: 'card resume', href: '#/workout' },
         h('strong', {}, 'Workout in progress'), h('span', { class: 'muted small' }, `${a.name} · started ${ago(a.started_at)}`),
         h('span', { class: 'btn primary small' }, 'Resume')),
+      todayCard(draw, todaySessions),
       !a && h('button', { class: 'btn primary block big', onclick: () => startWorkout(null) }, ic('play', 20), 'Start empty workout'),
       h('div', { class: 'log-row' }, ['run', 'swim', 'other'].map(k => h('button', { class: 'btn log-btn', onclick: () => logActivity(k) },
         ic(KINDS[k].icon, 20), h('span', {}, k === 'other' ? 'Other' : KINDS[k].label)))),
@@ -31,8 +33,11 @@ export async function renderTrain(root) {
       recent);
   };
   const recent = h('div', {}, spinner());
+  let todaySessions = [];
+  const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
   draw();
   loadRoutines().then(draw).catch(() => {});
+  Promise.all([loadPlan(), sessionsSince(midnight).then(x => (todaySessions = x))]).then(draw).catch(() => {});
   combined(5).then(list => mount(recent, list.length ? list.map(x => x.el) : h('p', { class: 'muted' }, 'Nothing logged yet.')))
     .catch(e => mount(recent, h('p', { class: 'muted' }, e.message)));
 }
