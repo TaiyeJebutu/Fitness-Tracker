@@ -5,6 +5,7 @@ import { workoutCard, stat } from './train.js';
 import { avatar, profileById } from './avatar.js';
 import { checkBadges, earnedBy, badgeStrip, badgeFeedItems } from './badges.js';
 import { activityData, perDay, activityGrid } from './home.js';
+import { muscleCard } from './musclemap.js';
 import { activityCard, fmtDist, hms, bestAt } from './cardio.js';
 import { shareSheet } from './share.js';
 import { h, mount, toast, confirmSheet, spinner, fmtW, fmtL, fmtBig, mondayStart, lineChart, toW, wUnit, currentPage, ic, chev } from './ui.js';
@@ -114,7 +115,12 @@ export async function renderFriend(root, id) {
     .sort((x, y) => new Date(y.at) - new Date(x.at)).slice(0, 6);
   const grid = h('div', {});
   if (f.share_activity !== false)
-    activityData(id).then(d => mount(grid, h('h2', {}, 'Activity'), h('section', { class: 'card' }, activityGrid(perDay(d))))).catch(() => {});
+    activityData(id).then(async d => {
+      if (d.sets.some(x => !state.exById.has(x.exercise_id))) await loadExercises().catch(() => {});   // their own exercises
+      const started = new Map(d.workouts.map(w => [w.id, w.started_at]));
+      mount(grid, h('h2', {}, 'Activity'), h('section', { class: 'card' }, activityGrid(perDay(d))),
+        muscleCard(d.sets.map(x => ({ exercise_id: x.exercise_id, side: x.side, at: started.get(x.workout_id) || x.created_at }))));
+    }).catch(() => {});
   if ([...routines.flatMap(r => r.items), ...recent.flatMap(w => w.sets)].some(x => !state.exById.has(x.exercise_id))) await loadExercises().catch(() => {});
   const byMetric = new Map();
   for (const m of metrics) byMetric.set(m.metric, [...(byMetric.get(m.metric) || []), m]);

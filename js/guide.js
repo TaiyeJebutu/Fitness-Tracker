@@ -28,7 +28,7 @@ export const TOPICS = [
 
   { id: 'dashboard', section: 'Getting started', title: 'Your Home dashboard', keywords: 'home dashboard stats streak this week trends volume records pr body areas', screens: [''],
     body: ['Home is your dashboard. From top to bottom:',
-      { steps: ['Streak & rings — how many weeks in a row you’ve trained, and three rings: the outer one is your weekly goal (the number of sessions you’ve planned, if you have a plan), the middle one your average sessions per week (over up to the last 8 full weeks), and the inner one this week so far. A full ring is 7 sessions (or more, if you train more), so you can watch this week catch up with your goal. Gym workouts, runs, swims and other activities all count.', 'This week’s plan — the sessions you’ve planned for each day, ticked off as you do them (see “Plan your week”).', 'Activity — a grid of every day (see “The activity grid”).', 'This week — sessions (gym workouts plus runs, swims and other activities), sets, volume and time, compared with the same point last week.', 'Running, swimming & more — this week’s distance or time for each kind of activity you log. Tap one for its stats and personal bests.', 'Trends — your weekly volume for the last 12 weeks (tap a column for its value), and which body areas you trained in the last 30 days.', 'Recent personal records — sets that beat your previous best estimated 1-rep max.', 'Badges — your latest ones and progress to the next workout milestone.', 'Body — your latest bodyweight with a mini trend. Tap it, or “All body stats”, to open Body.'] },
+      { steps: ['Streak & rings — how many weeks in a row you’ve trained, and three rings: the outer one is your weekly goal (the number of sessions you’ve planned, if you have a plan), the middle one your average sessions per week (over up to the last 8 full weeks), and the inner one this week so far. A full ring is 7 sessions (or more, if you train more), so you can watch this week catch up with your goal. Gym workouts, runs, swims and other activities all count.', 'This week’s plan — the sessions you’ve planned for each day, ticked off as you do them (see “Plan your week”).', 'Activity — a grid of every day (see “The activity grid”).', 'This week — sessions (gym workouts plus runs, swims and other activities), sets, volume and time, compared with the same point last week.', 'Running, swimming & more — this week’s distance or time for each kind of activity you log. Tap one for its stats and personal bests.', 'Trends — your weekly volume for the last 12 weeks (tap a column for its value), and the muscle map: which muscles you’ve trained over the last 7, 30 or 90 days (see “The muscle map”).', 'Recent personal records — sets that beat your previous best estimated 1-rep max.', 'Badges — your latest ones and progress to the next workout milestone.', 'Body — your latest bodyweight with a mini trend. Tap it, or “All body stats”, to open Body.'] },
       { tip: 'The floating “Start or log” button lets you start a gym workout or log a run, swim or other activity. While a workout is running, a dark “Workout in progress” card takes its place.' }] },
   { id: 'weekly-goal', section: 'Getting started', title: 'Your weekly goal & the rings', keywords: 'goal weekly target rings sessions per week average streak aim',
     body: ['Your weekly goal is how many sessions a week you’re aiming for. It starts at 3 — change it any time.',
@@ -47,7 +47,14 @@ export const TOPICS = [
     body: ['The grid shows the last year, one square per day (Monday at the top), with the newest week on the right — swipe sideways to see earlier months.',
       'Darker squares mean more training that day: every set counts, and so does time spent on runs, swims and other activities (a 40-minute run counts about the same as 10 sets). The shades are based on your own training, so they adapt as you get busier.',
       { tip: 'Tap a square to see that day’s sessions, and tap one to open it.' },
-      'Friends can see your grid on your friend page. To hide it, switch off “Friends can see my activity grid” under Me → Privacy.'] },
+      'Friends can see your grid on your friend page. To hide it, switch off “Friends can see my activity grid & muscle map” under Me → Privacy.'] },
+  { id: 'muscle-map', section: 'Getting started', title: 'The muscle map', keywords: 'muscle map heat heatmap body figure muscles trained chest back legs shoulders arms balance sets front back', screens: [],
+    body: ['The muscle map on Home shows a front and back body figure. The darker a muscle, the more sets you’ve given it — compared with your most-trained muscle. Grey means not trained.',
+      { steps: ['Choose 7, 30 or 90 days at the top.', 'Tap a muscle (or one of the chips underneath) to see how many sets it got. Tap it again to clear.'] },
+      'How sets are counted: each set counts as 1 for the exercise’s main muscles and ½ for the muscles that help (e.g. bench press: chest 1, triceps and front shoulders ½). For left & right exercises, a left and a right together count as one set. Runs, swims and other activities aren’t included.',
+      'After you finish a workout, the “Workout saved” pop-up shows a small map of that session.',
+      { tip: 'Built-in exercises already know their muscles. For your own exercises, set them on the exercise’s page (Edit); until then they’re guessed from the body area.' },
+      'Friends can see your muscle map on your friend page, along with your activity grid. To hide both, switch off “Friends can see my activity grid & muscle map” under Me → Privacy.'] },
 
   // ---------- Workouts ----------
   { id: 'start-workout', section: 'Workouts', title: 'Start a workout', keywords: 'begin train empty session', screens: ['train'],
@@ -74,7 +81,7 @@ export const TOPICS = [
       'Starting a timer replaces a rest countdown that’s running, and ticking a set starts a rest countdown in its place.',
       { tip: 'The screen stays on while it runs so it can beep and buzz at zero. Don’t want that? Switch off “Keep the screen on while a timer runs” under Me → Workouts.' }] },
   { id: 'finish-workout', section: 'Workouts', title: 'Finish or discard a workout', keywords: 'finish end save discard cancel', screens: ['workout'],
-    body: ['Tap Finish at the top. You’ll get a little celebration, then you can:', { steps: ['Update the routine you started from with today’s exercises, or', 'Save the workout as a new routine.'] },
+    body: ['Tap Finish at the top. You’ll get a little celebration and a small map of the muscles you trained, then you can:', { steps: ['Update the routine you started from with today’s exercises, or', 'Save the workout as a new routine.'] },
       '“Discard workout” at the bottom deletes everything logged in it.'] },
   { id: 'routines', section: 'Workouts', title: 'Create and edit routines', keywords: 'routine template plan push pull legs day', screens: ['routine'],
     body: [{ steps: ['On Train, tap “+ New” next to Routines.', 'Name it (e.g. “Push day”) and add exercises.', 'Set sets, reps and rest for each; use ↑ ↓ to reorder.', 'Tap “Save routine”.'] },
@@ -100,8 +107,8 @@ export const TOPICS = [
 
   { id: 'exercise-library', section: 'Exercises', title: 'Your exercise library', keywords: 'exercise create new custom rename delete library', screens: ['exercises'],
     body: ['Me → Exercises lists your own exercises and the built-in ones. Search or filter by body area.',
-      { steps: ['Tap “+ New” to create an exercise: give it a name, a body area and, if needed, switch on Left & right.', 'Tap any exercise to open its page.'] },
-      'On your own exercises you can rename them, change the body area, or delete them. Deleting also deletes the sets you logged for it (you’ll be warned). Built-in exercises can’t be renamed or deleted.'] },
+      { steps: ['Tap “+ New” to create an exercise: give it a name and a body area, check the muscles it works (main muscles, and ones that help — they’re filled in from the body area for you) and, if needed, switch on Left & right.', 'Tap any exercise to open its page — it shows the muscles it works.'] },
+      'On your own exercises you can rename them, change the body area or muscles, or delete them. Deleting also deletes the sets you logged for it (you’ll be warned). Built-in exercises can’t be renamed or deleted.'] },
   { id: 'exercise-page', section: 'Exercises', title: 'An exercise’s page and progress', keywords: 'progress chart e1rm best heaviest sessions', screens: ['exercise'],
     body: ['Each exercise’s page shows your best estimated 1-rep max, heaviest set, a progress chart and every session. Tap or drag on the chart to see values.',
       'Estimated 1-rep max uses the Epley formula and only counts sets of 12 reps or fewer.'] },
@@ -134,7 +141,7 @@ export const TOPICS = [
   { id: 'feed', section: 'Friends', title: 'The feed', keywords: 'feed activity friends workouts badges', screens: ['feed'],
     body: ['Friends → Feed shows your friends’ finished workouts, runs, swims and other activities, and badges they’ve earned, newest first. Tap one to see the details.'] },
   { id: 'friend-page', section: 'Friends', title: 'A friend’s page & copying routines', keywords: 'copy routine friend page remove unfriend', screens: ['friend'],
-    body: ['Tap a friend to see their badges, routines, recent training and any body stats they share.',
+    body: ['Tap a friend to see their badges, activity grid and muscle map (if they share them), routines, recent training and any body stats they share.',
       'Tap “Copy” on a routine to add it to your own routines. You can remove a friend at the bottom of their page.'] },
 
   // ---------- Leaderboards & badges ----------
@@ -181,6 +188,11 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '2.9.0', date: '2026-09-30', items: [
+    'New muscle map on Home: a front and back body figure shaded by how many sets each muscle got over the last 7, 30 or 90 days. Tap a muscle to see its sets.',
+    'Helper muscles count too (half a set) — e.g. bench press also works your triceps and front shoulders.',
+    'The “Workout saved” pop-up now shows which muscles that session hit, and friends can see your muscle map on your page (hide it under Me → Privacy).',
+    'Your own exercises: choose the muscles they work when you create or edit them.'] },
   { version: '2.8.0', date: '2026-09-30', items: [
     'Plan your week: on Home, tap a day in “This week’s plan” to add the sessions you’ll do — routines, runs, swims, other sports or your own. No times needed.',
     'Your usual week repeats automatically, and you can change any single week on its own.',

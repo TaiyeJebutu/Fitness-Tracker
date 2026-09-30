@@ -2,6 +2,7 @@
 import * as api from './api.js';
 import { state, exName, addExercise, lastSets, details, saveDetails, saveRoutine, setUnilateral, CATEGORIES } from './store.js';
 import { checkBadges } from './badges.js';
+import { musclePicker, AREA_MUSCLES, workoutMuscles } from './musclemap.js';
 import { h, mount, toast, sheet, confirmSheet, fmtW, toW, fromW, wUnit, clock, duration, currentPage, ic, haptic, confetti, rirText, showRir, holdScreenOn } from './ui.js';
 
 const AKEY = 'ft.active';
@@ -92,6 +93,7 @@ async function finish(w) {
   sheet('Workout saved', close => h('div', {},
     h('div', { class: 'saved-hero' }, h('span', { class: 'saved-ico' }, ic('check', 30)),
       h('p', {}, h('strong', {}, `${logged} set${logged === 1 ? '' : 's'}`), ' · ', duration(w.started_at, ended))),
+    workoutMuscles(doneItems.flatMap(it => it.sets.filter(s => s.done).map(s => ({ exercise_id: it.exercise_id, side: s.side })))),
     routine && h('button', { class: 'btn block', onclick: () => { saveRoutine({ ...routine, items: asRoutineItems }); toast('Routine updated'); close(); } },
       `Update “${routine.name}” with today's exercises`),
     h('button', { class: 'btn block', onclick: () => {
@@ -206,11 +208,17 @@ export function pickExercise(onPick) {
 // ---------- create / edit an exercise ------------------------------------
 /** Form for an exercise's name, body area and left/right. Calls onSubmit({name, category, unilateral}). */
 export function exerciseForm(init, onSubmit, submitLabel = 'Save') {
-  const f = { name: init.name || '', category: init.category || '', unilateral: !!init.unilateral };
+  const f = { name: init.name || '', category: init.category || '', unilateral: !!init.unilateral,
+    muscles: [...(init.muscles || [])], muscles2: [...(init.muscles2 || [])] };
+  const picker = musclePicker(f);
   const err = h('p', { class: 'error', role: 'alert' });
   const chips = h('div', { class: 'chips', role: 'radiogroup', 'aria-label': 'Body area' });
   const drawChips = () => mount(chips, CATEGORIES.map(c => h('button', { type: 'button', class: 'chip' + (c === f.category ? ' on' : ''), role: 'radio',
-    'aria-checked': String(c === f.category), onclick: () => { f.category = c; drawChips(); } }, c)));
+    'aria-checked': String(c === f.category), onclick: () => {
+      f.category = c; drawChips();
+      // no muscles picked yet: start from the usual ones for this body area
+      if (!f.muscles.length && !f.muscles2.length && AREA_MUSCLES[c]) { [f.muscles, f.muscles2] = AREA_MUSCLES[c].map(x => [...x]); picker.redraw(); }
+    } }, c)));
   drawChips();
   return h('form', { class: 'exercise-form', onsubmit: e => {
     e.preventDefault();
@@ -224,6 +232,7 @@ export function exerciseForm(init, onSubmit, submitLabel = 'Save') {
     h('label', { class: 'field' }, h('span', {}, 'Name'),
       h('input', { value: f.name, maxlength: 80, placeholder: 'e.g. Single-leg Press', 'data-noautofocus': init.name ? '1' : null, oninput: e => (f.name = e.target.value) })),
     h('div', { class: 'field' }, h('span', {}, 'Body area'), chips),
+    picker,
     h('label', { class: 'switch uni-switch' },
       h('input', { type: 'checkbox', checked: f.unilateral, onchange: e => (f.unilateral = e.target.checked) }),
       h('span', {}, h('strong', {}, 'Unilateral (left & right)'), h('br'), h('span', { class: 'muted small' }, 'Log each side separately'))),
@@ -232,7 +241,7 @@ export function exerciseForm(init, onSubmit, submitLabel = 'Save') {
 }
 
 export function createExercise(f) {
-  const ex = addExercise(f.name, f.category);
+  const ex = addExercise(f.name, f.category, f.muscles, f.muscles2);
   if (f.unilateral) setUnilateral(ex.id, true);
   toast('Exercise created');
   return ex;

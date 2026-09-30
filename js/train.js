@@ -6,6 +6,7 @@ import { details, setUnilateral, updateExercise, deleteExercise, CATEGORIES } fr
 import { avatar } from './avatar.js';
 import { logActivity, activityCard, loadActivities, KINDS } from './cardio.js';
 import { loadPlan, todayCard, sessionsSince } from './plan.js';
+import { exMuscles, muscleList } from './musclemap.js';
 import { h, mount, toast, sheet, confirmSheet, fmtW, fmtDate, fmtDay, duration, ago, spinner, lineChart, e1rm, toW, wUnit, ic, rirText } from './ui.js';
 
 // ---------- Train home ---------------------------------------------------
@@ -160,6 +161,18 @@ function num(label, value, set, step = 1) {
 }
 
 // ---------- Exercise history --------------------------------------------
+/** "Works: Chest · also Triceps, Front shoulders" under an exercise's name. */
+function musclesLine(ex, mine, edit) {
+  const [m, m2] = exMuscles(ex);
+  const guessed = !(ex.muscles || []).length && !(ex.muscles2 || []).length;
+  if (!m.length && !m2.length)
+    return mine ? h('p', { class: 'small muscles-line' }, h('button', { class: 'link-inline', onclick: edit }, 'Set the muscles it works')) : null;
+  return h('p', { class: 'small muscles-line' },
+    m.length > 0 && [h('b', {}, 'Works: '), muscleList(m)], m.length > 0 && m2.length > 0 && ' · ',
+    m2.length > 0 && [h('span', { class: 'muted' }, 'also '), muscleList(m2)],
+    mine && guessed && [' ', h('button', { class: 'link-inline', onclick: edit }, 'Change')]);
+}
+
 export async function renderExercise(root, id) {
   mount(root, spinner());
   const uid = api.userId();
@@ -178,8 +191,8 @@ export async function renderExercise(root, id) {
   const summary = detailsSummary(d);
   const ex = state.exById.get(id);
   const mine = ex?.owner === uid;
-  const edit = () => sheet('Edit exercise', close => exerciseForm({ id, name: ex.name, category: ex.category, unilateral: !!d?.unilateral }, f => {
-    updateExercise(id, { name: f.name, category: f.category });
+  const edit = () => sheet('Edit exercise', close => exerciseForm({ id, name: ex.name, category: ex.category, unilateral: !!d?.unilateral, ...Object.fromEntries(['muscles', 'muscles2'].map((k, i) => [k, exMuscles(ex)[i]])) }, f => {
+    updateExercise(id, { name: f.name, category: f.category, muscles: f.muscles, muscles2: f.muscles2 });
     if (f.unilateral !== !!d?.unilateral) setUnilateral(id, f.unilateral);
     toast('Saved'); close(); renderExercise(root, id);
   }));
@@ -197,6 +210,7 @@ export async function renderExercise(root, id) {
     h('a', { class: 'back', href: 'javascript:history.back()' }, ic('back', 18), 'Back'),
     h('h1', {}, exName(id)),
     ex && h('p', { class: 'muted small' }, `${ex.category}${mine ? ' · your exercise' : ' · built-in'}`),
+    ex && musclesLine(ex, mine, edit),
     h('section', { class: 'card' },
       h('label', { class: 'switch' },
         h('input', { type: 'checkbox', checked: !!d?.unilateral, onchange: e => { setUnilateral(id, e.target.checked); toast(e.target.checked ? 'Left & right on' : 'Left & right off'); } }),

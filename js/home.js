@@ -6,6 +6,7 @@ import { avatar } from './avatar.js';
 import { earnedBy, badgeStrip } from './badges.js';
 import { fmtMetric } from './social.js';
 import { loadPlan, planCard, plannedCount, toSessions } from './plan.js';
+import { muscleCard } from './musclemap.js';
 import { chooseActivity, activityName, fmtDist, KINDS, hmShort } from './cardio.js';
 import { h, svg, mount, spinner, toast, fmtW, fmtBig, fmtDay, fmtDate, mondayStart, e1rm, toW, wUnit, ago, ic, sheet, currentPage } from './ui.js';
 
@@ -21,7 +22,7 @@ export async function activityData(uid, { withSets = true } = {}) {
   try {
     const [workouts, sets, activities] = await Promise.all([
       api.getAll(`workouts?owner=eq.${uid}&ended_at=not.is.null&select=id,name,routine_id,started_at,ended_at&order=started_at.asc`),
-      withSets ? api.getAll(`sets?owner=eq.${uid}&select=workout_id,exercise_id,reps,weight_kg,created_at&order=created_at.asc`) : [],
+      withSets ? api.getAll(`sets?owner=eq.${uid}&select=workout_id,exercise_id,side,reps,weight_kg,created_at&order=created_at.asc`) : [],
       api.getAll(`activities?owner=eq.${uid}&select=id,kind,sport,title,started_at,duration_s,distance_m&order=started_at.asc`).catch(() => [])]);
     const data = { workouts, sets, activities };
     if (uid === api.userId()) api.LS.set(key, data);
@@ -126,14 +127,6 @@ export function columnChart(values, labels, fmt, title) {
   });
   s.addEventListener('pointerleave', () => (tip.hidden = true));
   return h('div', { class: 'chart' }, h('div', { class: 'chart-title rel small' }, h('span', { class: 'muted' }, title), ' · ', h('strong', {}, 'this week ' + fmt(values[values.length - 1]))), tip, s);
-}
-
-function barList(rows, fmt) {
-  const max = Math.max(...rows.map(r => r.value), 1);
-  return h('div', { class: 'bars' }, rows.map(r => h('div', { class: 'bar-row' },
-    h('span', { class: 'bar-label small' }, r.label),
-    h('span', { class: 'bar-track' }, h('span', { class: 'bar-fill', style: { width: Math.max(3, (r.value / max) * 100) + '%' } })),
-    h('span', { class: 'bar-val small' }, fmt(r.value)))));
 }
 
 function sparkline(points) {
@@ -264,15 +257,8 @@ export async function renderHome(root) {
   const vol = volWeeks.map(ws => sets.filter(s => { const w = byWorkout.get(s.workout_id); return w && inRange(w.started_at, ws, addDays(ws, 7)); })
     .reduce((t, s) => t + s.weight_kg * s.reps, 0));
 
-  // ---- body areas, last 30 days (sets per area)
-  const since30 = new Date(Date.now() - 30 * DAY), areas = new Map();
-  for (const s of sets) {
-    const w = byWorkout.get(s.workout_id);
-    if (!w || new Date(w.started_at) < since30) continue;
-    const cat = state.exById.get(s.exercise_id)?.category || 'Other';
-    areas.set(cat, (areas.get(cat) || 0) + 1);
-  }
-  const areaRows = [...areas].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);
+  // ---- muscles trained (the heat map works out 7 / 30 / 90 days itself)
+  const muscleSetsList = sets.map(s => ({ exercise_id: s.exercise_id, side: s.side, at: byWorkout.get(s.workout_id)?.started_at || s.created_at }));
 
   // ---- recent personal records (a set beating your previous best e1RM on that exercise)
   const best = new Map(), prs = [];
@@ -325,9 +311,7 @@ export async function renderHome(root) {
 
     h('h2', {}, 'Trends'),
     columnChart(vol, volWeeks.map(d => 'w/c ' + shortDate(d)), fmtBig, 'Weekly volume, last 12 weeks'),
-    h('section', { class: 'card' },
-      h('div', { class: 'row between' }, h('strong', {}, 'Body areas trained'), h('span', { class: 'muted small' }, 'sets, last 30 days')),
-      areaRows.length ? barList(areaRows, v => v) : h('p', { class: 'muted small' }, 'Log a workout to see which areas you’re training.')),
+    muscleCard(muscleSetsList),
 
     h('h2', {}, 'Recent personal records'),
     h('section', { class: 'card' },

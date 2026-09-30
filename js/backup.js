@@ -4,6 +4,7 @@ import { state, loadExercises, loadRoutines, METRICS, metricOk } from './store.j
 import { h, mount, toast, sheet, confirmSheet, fmtDay } from './ui.js';
 import { activityOk } from './cardio.js';
 import { loadPlan, cleanPlanItems } from './plan.js';
+import { MUSCLES } from './musclemap.js';
 
 // ---------- export ---------------------------------------------------------
 export async function exportData() {
@@ -83,7 +84,8 @@ async function runImport(d, mode, progress) {
       out = byName.get(name.toLowerCase());
       if (!out) {
         out = await deriveId(id, uid);
-        newExercises.push({ id: out, owner: uid, name, category: customInfo.get(id)?.category || known?.category || 'Other' });
+        const info = customInfo.get(id), ok = a => (Array.isArray(a) ? a.filter(k => MUSCLES[k]).slice(0, 17) : []);
+        newExercises.push({ id: out, owner: uid, name, category: info?.category || known?.category || 'Other', muscles: ok(info?.muscles), muscles2: ok(info?.muscles2) });
         byName.set(name.toLowerCase(), out);
       }
     }

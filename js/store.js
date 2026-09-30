@@ -23,8 +23,9 @@ export async function loadProfile() {
 
 export async function loadExercises() {
   let list = [];
-  try { list = await api.get('exercises?select=id,name,category,owner&order=name'); }
-  catch (e) { list = api.cached('exercises?select=id,name,category,owner&order=name') || []; }
+  const path = 'exercises?select=id,name,category,owner,muscles,muscles2&order=name';
+  try { list = await api.get(path); }
+  catch (e) { list = api.cached(path) || api.cached('exercises?select=id,name,category,owner&order=name') || []; }
   // include my locally-created exercises that haven't reached the server yet
   const local = api.LS.get(MY_EX, []).filter(x => !list.some(y => y.id === x.id));
   state.exercises = [...list, ...local].sort((a, b) => a.name.localeCompare(b.name));
@@ -34,8 +35,8 @@ export async function loadExercises() {
   return state.exercises;
 }
 
-export function addExercise(name, category) {
-  const ex = { id: api.uuid(), name: name.trim(), category, owner: api.userId() };
+export function addExercise(name, category, muscles = [], muscles2 = []) {
+  const ex = { id: api.uuid(), name: name.trim(), category, owner: api.userId(), muscles, muscles2 };
   api.upsert('exercises', ex);
   api.LS.set(MY_EX, [...api.LS.get(MY_EX, []), ex]);
   state.exercises.push(ex);
@@ -124,12 +125,12 @@ export const metricOk = (def, v) => !!def && Number.isFinite(+v) && +v >= def.mi
 /** Remember left/right for an exercise (applies everywhere it's used). */
 export function setUnilateral(exerciseId, on) { saveDetails(exerciseId, { unilateral: !!on }); }
 
-/** Rename / re-categorise one of your own exercises. */
+/** Rename / re-categorise / set the muscles of one of your own exercises. */
 export function updateExercise(id, patch) {
   const ex = state.exById.get(id);
   if (!ex || ex.owner !== api.userId()) return;
   Object.assign(ex, patch);
-  api.upsert('exercises', { id, owner: ex.owner, name: ex.name, category: ex.category });
+  api.upsert('exercises', { id, owner: ex.owner, name: ex.name, category: ex.category, muscles: ex.muscles || [], muscles2: ex.muscles2 || [] });
   state.exercises.sort((a, b) => a.name.localeCompare(b.name));
   const local = api.LS.get(MY_EX, []);
   const i = local.findIndex(x => x.id === id);

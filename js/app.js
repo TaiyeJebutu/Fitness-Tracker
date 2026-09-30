@@ -160,7 +160,7 @@ function renderMe(root) {
       h('strong', {}, 'Privacy'),
       h('label', { class: 'switch', style: { marginTop: '8px' } },
         h('input', { type: 'checkbox', checked: p.share_activity !== false, onchange: e => setShareActivity(e.target.checked) }),
-        h('span', {}, 'Friends can see my activity grid')),
+        h('span', {}, 'Friends can see my activity grid & muscle map')),
       h('p', { class: 'muted small' }, 'Body stats have their own switches on the Body screen.')),
     h('section', { class: 'card' },
       h('strong', {}, 'Workouts'),
