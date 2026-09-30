@@ -23,7 +23,8 @@ export async function renderTrain(root) {
       h('div', { class: 'log-row' }, ['run', 'swim', 'other'].map(k => h('button', { class: 'btn log-btn', onclick: () => logActivity(k) },
         ic(KINDS[k].icon, 20), h('span', {}, k === 'other' ? 'Other' : KINDS[k].label)))),
       h('p', { class: 'muted small center log-hint' }, 'Log a run, swim or other activity after you’ve done it.'),
-      h('div', { class: 'section-head' }, h('h2', {}, 'Routines'), h('a', { class: 'btn small', href: '#/routine/new' }, ic('plus', 18), 'New')),
+      h('div', { class: 'section-head' }, h('h2', {}, 'Routines'), h('div', { class: 'row gap' },
+        h('a', { class: 'btn small ghost', href: '#/exercises' }, 'Exercises'), h('a', { class: 'btn small', href: '#/routine/new' }, ic('plus', 18), 'New'))),
       state.routines.length ? state.routines.map(r => h('div', { class: 'card routine' },
         h('a', { class: 'routine-info', href: '#/routine/' + r.id },
           h('strong', {}, r.name),
@@ -123,7 +124,9 @@ export async function renderRoutine(root, id) {
   const uni = new Map();   // exercise id -> left/right setting (per exercise, shared everywhere)
   const loadUni = ids => Promise.all(ids.filter(x => !uni.has(x)).map(async x => uni.set(x, !!(await details(x).catch(() => null))?.unilateral)));
   const draw = () => mount(list, r.items.map((it, i) => h('div', { class: 'card routine-item' },
-    h('div', { class: 'row between' }, h('strong', {}, exName(it.exercise_id)),
+    h('div', { class: 'row between' },
+      h('button', { class: 'routine-ex-name', 'aria-label': `${exName(it.exercise_id)}: settings & notes`, onclick: () => editDetails(it.exercise_id, f => { uni.set(it.exercise_id, !!f.unilateral); draw(); }) },
+        h('strong', {}, exName(it.exercise_id)), h('span', { class: 'muted small' }, 'Settings & notes ›')),
       h('div', { class: 'row' },
         h('button', { class: 'icon-btn', 'aria-label': 'Move up', disabled: i === 0, onclick: () => { r.items.splice(i - 1, 0, r.items.splice(i, 1)[0]); draw(); } }, ic('up', 20)),
         h('button', { class: 'icon-btn', 'aria-label': 'Move down', disabled: i === r.items.length - 1, onclick: () => { r.items.splice(i + 1, 0, r.items.splice(i, 1)[0]); draw(); } }, ic('down', 20)),
@@ -211,6 +214,11 @@ export async function renderExercise(root, id) {
     h('h1', {}, exName(id)),
     ex && h('p', { class: 'muted small' }, `${ex.category}${mine ? ' · your exercise' : ' · built-in'}`),
     ex && musclesLine(ex, mine, edit),
+    h('section', { class: 'card ex-settings' },
+      h('strong', {}, 'Machine settings & notes'),
+      h('p', { class: 'muted small' }, summary || 'Nothing saved yet — add the machine, seat height, other adjustments and notes.'),
+      d?.notes && h('p', { class: 'note small' }, d.notes),
+      h('button', { class: 'btn block', onclick: () => editDetails(id, () => renderExercise(root, id)) }, ic('edit', 18), 'Edit settings & notes')),
     h('section', { class: 'card' },
       h('label', { class: 'switch' },
         h('input', { type: 'checkbox', checked: !!d?.unilateral, onchange: e => { setUnilateral(id, e.target.checked); toast(e.target.checked ? 'Left & right on' : 'Left & right off'); } }),
@@ -218,11 +226,6 @@ export async function renderExercise(root, id) {
     mine && h('div', { class: 'row gap' },
       h('button', { class: 'btn small', onclick: edit }, 'Rename / change area'),
       h('button', { class: 'btn small danger ghost', onclick: remove }, 'Delete exercise')),
-    h('section', { class: 'card' },
-      h('div', { class: 'row between' }, h('strong', {}, 'My settings'),
-        h('button', { class: 'btn small', onclick: () => editDetails(id, () => renderExercise(root, id)) }, 'Edit')),
-      h('p', { class: 'muted small' }, summary || 'None saved yet — add seat height, machine brand/model and adjustments.'),
-      d?.notes && h('p', { class: 'note small' }, d.notes)),
     h('div', { class: 'stats' },
       stat('Best e1RM', bestSet ? fmtW(e1rm(bestSet.weight_kg, bestSet.reps) || 0) : '—'),
       stat('Heaviest', heaviest ? `${fmtW(heaviest.weight_kg)} × ${heaviest.reps}` : '—'),
@@ -258,10 +261,10 @@ export function renderExercises(root) {
       cat = c; chips.querySelectorAll('.chip').forEach(b => b.classList.remove('on')); e.currentTarget.classList.add('on'); draw(); } }, c || 'All')));
   draw();
   mount(root,
-    h('a', { class: 'back', href: '#/me' }, ic('back', 18), 'Me'),
+    h('a', { class: 'back', href: 'javascript:history.back()' }, ic('back', 18), 'Back'),
     h('div', { class: 'section-head' }, h('h1', {}, 'Exercises'),
       h('button', { class: 'btn primary small', onclick: () => newExerciseSheet(ex => { location.hash = '#/exercise/' + ex.id; }) }, ic('plus', 18), 'New')),
-    h('p', { class: 'muted small' }, 'Tap an exercise to set left & right, machine settings, or see your history.'),
+    h('p', { class: 'muted small' }, 'Tap an exercise to edit its machine settings & notes, set left & right, or see your history.'),
     h('input', { type: 'search', placeholder: 'Search exercises', 'aria-label': 'Search exercises', oninput: e => { q = e.target.value; draw(); } }),
     chips, list);
 }

@@ -85,7 +85,7 @@ export const TOPICS = [
       '“Discard workout” at the bottom deletes everything logged in it.'] },
   { id: 'routines', section: 'Workouts', title: 'Create and edit routines', keywords: 'routine template plan push pull legs day', screens: ['routine'],
     body: [{ steps: ['On Train, tap “+ New” next to Routines.', 'Name it (e.g. “Push day”) and add exercises.', 'Set sets, reps and rest for each; use ↑ ↓ to reorder.', 'Tap “Save routine”.'] },
-      'Each exercise also has a “Left & right” switch — see “Left & right exercises”.',
+      'Each exercise also has a “Left & right” switch — see “Left & right exercises”. Tap an exercise’s name to edit its machine settings & notes.',
       'Tap a routine’s name to edit or delete it. Past workouts are kept if you delete a routine.'] },
   { id: 'history', section: 'Workouts', title: 'Workout history', keywords: 'history past previous workouts delete', screens: ['history'],
     body: ['Train → “All history” (or Me → Workout history) lists your finished workouts. Tap one to see every set and estimated 1-rep maxes, or to delete it.'] },
@@ -106,7 +106,7 @@ export const TOPICS = [
       'Running and swimming badges, and the Cardio leaderboards on Ranks, use the same data.'] },
 
   { id: 'exercise-library', section: 'Exercises', title: 'Your exercise library', keywords: 'exercise create new custom rename delete library', screens: ['exercises'],
-    body: ['Me → Exercises lists your own exercises and the built-in ones. Search or filter by body area.',
+    body: ['Exercises (on Train, next to Routines, or Me → Exercises) lists your own exercises and the built-in ones. Search or filter by body area.',
       { steps: ['Tap “+ New” to create an exercise: give it a name and a body area, check the muscles it works (main muscles, and ones that help — they’re filled in from the body area for you) and, if needed, switch on Left & right.', 'Tap any exercise to open its page — it shows the muscles it works.'] },
       'On your own exercises you can rename them, change the body area or muscles, or delete them. Deleting also deletes the sets you logged for it (you’ll be warned). Built-in exercises can’t be renamed or deleted.'] },
   { id: 'exercise-page', section: 'Exercises', title: 'An exercise’s page and progress', keywords: 'progress chart e1rm best heaviest sessions', screens: ['exercise'],
@@ -118,7 +118,9 @@ export const TOPICS = [
       'The setting belongs to the exercise, so it applies everywhere you use it. “Last” numbers and pre-filled values are kept per side.',
       { tip: 'If you switch it mid-workout after logging sets, it applies the next time you add that exercise.' }] },
   { id: 'machine-settings', section: 'Exercises', title: 'Machine & seat settings', keywords: 'seat height machine brand model adjustment notes settings', screens: ['exercise', 'workout'],
-    body: ['Tap an exercise’s name during a workout (or “Edit” on its page) to save the machine brand and model, seat height, any other adjustments (e.g. “Back pad: 3”) and notes.',
+    body: ['Save the machine brand and model, seat height, any other adjustments (e.g. “Back pad: 3”) and notes for any exercise — you don’t need to be in a workout.',
+      { steps: ['On Train, tap “Exercises” (next to Routines), or go to Me → Exercises.', 'Tap the exercise, then “Edit settings & notes”.', 'Fill in what you need and tap Save.'] },
+      'You can also tap an exercise’s name while editing a routine, or during a workout.',
       'They show under the exercise name every time you do it. Only you can see them.'] },
 
   // ---------- Body ----------
@@ -188,6 +190,9 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '2.9.1', date: '2026-09-30', items: [
+    'Machine settings & notes are easier to reach without starting a workout: there’s a new Exercises button on Train, and each exercise’s page has an “Edit settings & notes” button at the top.',
+    'While editing a routine, tap an exercise’s name to edit its settings & notes.'] },
   { version: '2.9.0', date: '2026-09-30', items: [
     'New muscle map on Home: a front and back body figure shaded by how many sets each muscle got over the last 7, 30 or 90 days. Tap a muscle to see its sets.',
     'Helper muscles count too (half a set) — e.g. bench press also works your triceps and front shoulders.',
