@@ -708,3 +708,10 @@ from (values
   ('Farmer''s Carry', '{forearms,traps}', '{abs,obliques,glutes}')
 ) as v(name, m, s)
 where e.owner is null and e.name = v.name;
+
+
+-- =====================================================================
+-- v2.9.2 additions (same as upgrade-2.9.2.sql)
+-- =====================================================================
+alter table public.sets drop constraint if exists sets_rir_check;
+alter table public.sets add constraint sets_rir_check check (rir is null or rir between -1 and 5);

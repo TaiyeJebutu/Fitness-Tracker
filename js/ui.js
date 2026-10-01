@@ -149,7 +149,11 @@ export function mondayStart(d = new Date()) {
 export const todayISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
 
 /** Reps in reserve: 0 = failure … 5 = "5+". Shown per set when the Me → Workouts switch is on (this device). */
-export const rirText = r => (r == null ? '' : r >= 5 ? '5+' : String(r));
+// Reps in reserve: 0–5 (5 = "5+"), or -1 = taken to failure ("F"), which is harder than 0 RIR.
+export const RIR_FAIL = -1;
+export const rirText = r => (r == null ? '' : r === RIR_FAIL ? 'F' : r >= 5 ? '5+' : String(r));
+/** Short label for a set's effort: "2 RIR" or "Failure". */
+export const rirLabel = r => (r == null ? '' : r === RIR_FAIL ? 'Failure' : `${rirText(r)} RIR`);
 export const showRir = () => { try { return localStorage.getItem('ft.showRir') !== '0'; } catch { return true; } };
 export const setShowRir = on => { try { localStorage.setItem('ft.showRir', on ? '1' : '0'); } catch {} };
 

@@ -67,9 +67,9 @@ export const TOPICS = [
       'The “Last” column shows what you did for that set the previous time.',
       'Tap the grey settings chip under an exercise’s name to add machine and seat settings.', '“+ Add set” and “Remove last set” sit under each exercise. The ••• menu lets you change the rest time, move the exercise up or down, or remove it.'] },
   { id: 'rir', section: 'Workouts', title: 'Reps in reserve (RIR)', keywords: 'rir reps in reserve effort rpe failure hard intensity how close', screens: ['workout'],
-    body: ['Reps in reserve is how many more reps you could have done with good form: 0 means you hit failure, 5+ means it was easy. Logging it helps you see how hard you’re really training.',
-      { steps: ['Tick a set as normal.', 'A row of buttons appears under it: 0, 1, 2, 3, 4, 5+. Tap one — or tap × (or just carry on) to skip.', 'To change it later, tap the set number on the left of a ticked set.'] },
-      'The set number then shows the RIR (e.g. “2 RIR”), the “Last” column shows what you logged last time (e.g. 80×8 @2), and saved workouts show it next to each set — your friends can see it too.',
+    body: ['Reps in reserve is how many more reps you could have done with good form: 0 means you couldn’t have done another clean rep, 5+ means it was easy. F means you went to failure — you tried for another rep and couldn’t complete it. Logging it helps you see how hard you’re really training.',
+      { steps: ['Tick a set as normal.', 'A row of buttons appears under it: F, 0, 1, 2, 3, 4, 5+. Tap one — or tap × (or just carry on) to skip.', 'To change it later, tap the set number on the left of a ticked set.'] },
+      'The set number then shows the RIR (e.g. “2 RIR”, or “Failure” in red), the “Last” column shows what you logged last time (e.g. 80×8 @2 or 80×8 @F), and saved workouts show it next to each set (failure sets are highlighted) — your friends can see it too.',
       { tip: 'Don’t use it? Switch off “Log reps in reserve” under Me → Workouts (saved on this device).' }] },
   { id: 'rest-timer', section: 'Workouts', title: 'Rest timer', keywords: 'rest timer countdown beep vibrate screen off locked sound notification', screens: ['workout'],
     body: ['The timer starts when you tick a set and floats above the tab bar. Use −15 / +15 to adjust it, or Skip to stop it. It beeps and vibrates when time’s up.',
@@ -190,6 +190,9 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '2.9.2', date: '2026-10-01', items: [
+    'Reps in reserve now has an F option for sets taken to failure — because 0 reps in reserve isn’t the same as failing a rep.',
+    'Failure sets are highlighted in your history, in the workout and on your friends’ feed.'] },
   { version: '2.9.1', date: '2026-09-30', items: [
     'Machine settings & notes are easier to reach without starting a workout: there’s a new Exercises button on Train, and each exercise’s page has an “Edit settings & notes” button at the top.',
     'While editing a routine, tap an exercise’s name to edit its settings & notes.'] },

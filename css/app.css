@@ -697,3 +697,9 @@ svg.hm rect.sel { stroke: var(--ink); stroke-width: 2; }
 .routine-ex-name strong { overflow: hidden; text-overflow: ellipsis; }
 .ex-settings p { margin: 6px 0 10px; }
 .ex-settings .btn { gap: 8px; }
+
+/* ---------- failure in RIR (v2.9.2) ---------- */
+.rir-btn.fail { color: var(--danger); }
+.rir-btn.fail.on { background: var(--danger); color: #fff; }
+.set-no.rir-toggle small.fail { color: var(--danger); }
+.rir-tag.fail { color: var(--danger); background: var(--danger-soft); border-radius: 999px; padding: 1px 8px; }

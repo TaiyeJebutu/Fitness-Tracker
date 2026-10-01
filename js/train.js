@@ -7,7 +7,7 @@ import { avatar } from './avatar.js';
 import { logActivity, activityCard, loadActivities, KINDS } from './cardio.js';
 import { loadPlan, todayCard, sessionsSince } from './plan.js';
 import { exMuscles, muscleList } from './musclemap.js';
-import { h, mount, toast, sheet, confirmSheet, fmtW, fmtDate, fmtDay, duration, ago, spinner, lineChart, e1rm, toW, wUnit, ic, rirText } from './ui.js';
+import { h, mount, toast, sheet, confirmSheet, fmtW, fmtDate, fmtDay, duration, ago, spinner, lineChart, e1rm, toW, wUnit, ic, rirText, rirLabel, RIR_FAIL } from './ui.js';
 
 // ---------- Train home ---------------------------------------------------
 export async function renderTrain(root) {
@@ -107,7 +107,7 @@ export async function renderWorkoutDetail(root, id) {
     wk.notes && h('p', { class: 'note' }, wk.notes),
     [...groups].map(([exId, sets]) => h('section', { class: 'card' },
       h('a', { href: '#/exercise/' + exId }, h('strong', {}, exName(exId))),
-      h('ol', { class: 'set-list' }, sets.map(s => h('li', {}, s.side && h('span', { class: 'side-tag' }, s.side), `${fmtW(s.weight_kg)} × ${s.reps}`, s.rir != null && h('span', { class: 'rir-tag' }, `@ ${rirText(s.rir)} RIR`),
+      h('ol', { class: 'set-list' }, sets.map(s => h('li', {}, s.side && h('span', { class: 'side-tag' }, s.side), `${fmtW(s.weight_kg)} × ${s.reps}`, s.rir != null && h('span', { class: 'rir-tag' + (s.rir === RIR_FAIL ? ' fail' : '') }, s.rir === RIR_FAIL ? 'to failure' : `@ ${rirLabel(s.rir)}`),
         e1rm(s.weight_kg, s.reps) && h('span', { class: 'muted small' }, ` · e1RM ${fmtW(e1rm(s.weight_kg, s.reps))}`)))))),
     mine && h('button', { class: 'btn danger ghost block', onclick: async () => {
       if (!(await confirmSheet('Delete workout?', 'This removes the workout and all its sets.'))) return;

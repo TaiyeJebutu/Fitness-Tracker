@@ -3,7 +3,7 @@ import * as api from './api.js';
 import { state, exName, addExercise, lastSets, details, saveDetails, saveRoutine, setUnilateral, CATEGORIES } from './store.js';
 import { checkBadges } from './badges.js';
 import { musclePicker, AREA_MUSCLES, workoutMuscles } from './musclemap.js';
-import { h, mount, toast, sheet, confirmSheet, fmtW, toW, fromW, wUnit, clock, duration, currentPage, ic, haptic, confetti, rirText, showRir, holdScreenOn } from './ui.js';
+import { h, mount, toast, sheet, confirmSheet, fmtW, toW, fromW, wUnit, clock, duration, currentPage, ic, haptic, confetti, rirText, rirLabel, RIR_FAIL, showRir, holdScreenOn } from './ui.js';
 
 const AKEY = 'ft.active';
 export const active = () => api.LS.get(AKEY);
@@ -368,8 +368,8 @@ export function renderWorkout(root) {
       const setRir = v => { const cur = upd(c => { const t = c.items[idx].sets[si]; t.rir = t.rir === v ? null : v; });
         const t = cur.items[idx].sets[si]; if (t.done) persistSet(cur, cur.items[idx], t); rirOpen = null; haptic(8); rerender(); };
       const no = rir && s.done
-        ? h('button', { class: 'set-no rir-toggle' + (s.side ? ' sided' : ''), 'aria-label': `RIR for set ${s.set_no}${side}${s.rir != null ? ': ' + rirText(s.rir) : ''} — tap to change`,
-            onclick: () => { rirOpen = rirOpen === s.id ? null : s.id; rerender(); } }, label(s), s.rir != null && h('small', {}, rirText(s.rir) + ' RIR'))
+        ? h('button', { class: 'set-no rir-toggle' + (s.side ? ' sided' : ''), 'aria-label': `RIR for set ${s.set_no}${side}${s.rir != null ? ': ' + rirLabel(s.rir) : ''} — tap to change`,
+            onclick: () => { rirOpen = rirOpen === s.id ? null : s.id; rerender(); } }, label(s), s.rir != null && h('small', { class: s.rir === RIR_FAIL ? 'fail' : '' }, rirLabel(s.rir)))
         : h('span', { class: 'set-no' + (s.side ? ' sided' : '') }, label(s));
       const row = h('div', { class: 'set-row' + (s.done ? ' done' : '') + (s.side === 'R' ? ' side-r' : '') },
         no,
@@ -378,7 +378,8 @@ export function renderWorkout(root) {
       if (!(rir && s.done && rirOpen === s.id)) return row;
       return [row, h('div', { class: 'rir-pick', role: 'group', 'aria-label': `Reps in reserve for set ${s.set_no}${side}` },
         h('span', { class: 'rir-label' }, 'RIR'),
-        [0, 1, 2, 3, 4, 5].map(v => h('button', { class: 'rir-btn' + (s.rir === v ? ' on' : ''), 'aria-pressed': String(s.rir === v), onclick: () => setRir(v) }, rirText(v))),
+        [RIR_FAIL, 0, 1, 2, 3, 4, 5].map(v => h('button', { class: 'rir-btn' + (v === RIR_FAIL ? ' fail' : '') + (s.rir === v ? ' on' : ''), 'aria-pressed': String(s.rir === v),
+          'aria-label': v === RIR_FAIL ? 'Failure (no more reps possible)' : `${rirText(v)} reps in reserve`, onclick: () => setRir(v) }, rirText(v))),
         h('button', { class: 'icon-btn rir-close', 'aria-label': 'Skip', onclick: () => { rirOpen = null; rerender(); } }, ic('close', 16)))];
     });
     const menu = () => sheet(exName(it.exercise_id), close => h('div', { class: 'stack' },
