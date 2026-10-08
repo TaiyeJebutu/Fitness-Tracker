@@ -4,7 +4,7 @@
 import * as api from './api.js';
 import { state } from './store.js';
 import { KINDS, logActivity, SPORTS } from './cardio.js';
-import { startWorkout, active } from './workout.js';
+import { startWorkout, active, pastWorkoutSheet } from './workout.js';
 import { h, mount, sheet, toast, ic, mondayStart, haptic } from './ui.js';
 
 export const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -65,8 +65,8 @@ export function matchDay(items, sessions) {
   // specific matches first, then anything left counts for labels
   items.forEach((it, i) => {
     if (it.t === 'routine') done[i] = take(s => s.type === 'workout' && (s.routine_id === it.id || s.name === itemName(it)));
-    else if (it.t === 'run' || it.t === 'swim') done[i] = take(s => s.type === it.t);
-    else if (it.t === 'other') done[i] = take(s => s.type === 'other' && (!it.sport || s.sport === it.sport));
+    else if (it.t === 'run' || it.t === 'swim') done[i] = take(s => s.type === it.t || (s.type === 'workout' && s.name === itemName(it)));
+    else if (it.t === 'other') done[i] = take(s => (s.type === 'other' && (!it.sport || s.sport === it.sport)) || (s.type === 'workout' && s.name === itemName(it)));
   });
   items.forEach((it, i) => { if (it.t === 'label') done[i] = take(() => true); });
   return { done, extra: left.length };
@@ -80,13 +80,18 @@ export function startItem(it) {
 }
 
 // ---------- editing a day ------------------------------------------------------------
-export function daySheet(offset, day, onChange) {
+/** sessions (optional): your sessions, so days up to today can offer 'I did this' for anything not ticked yet. */
+export function daySheet(offset, day, onChange, sessions = null) {
   if (state.plan?.owner !== api.userId()) return toast('Your plan is still loading — try again in a moment', 'err');
   sheet(`${DAYS[day]}${offset === 0 ? '' : offset === 1 ? ' (next week)' : offset < 0 ? ' (last week)' : ` (week of ${new Date(weekKey(offset) + 'T12:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' })})`}`, close => {
     const body = h('div', { class: 'plan-sheet' });
     let scope = hasOwnChanges(offset) || offset < 0 ? 'week' : 'usual';   // last week can only be changed on its own
     const redraw = () => {
       const items = (scope === 'usual' ? state.plan.template : weekPlan(offset))[day];
+      // days up to today: which sessions are already done, so the rest can be marked "I did this"
+      const date = new Date(weekKey(offset) + 'T12:00'); date.setDate(date.getDate() + day);
+      const dateK = dayKey(date), canTick = !!sessions && dateK <= dayKey(new Date()) && (scope === 'week' || !hasOwnChanges(offset));
+      const doneFlags = canTick ? matchDay(items, sessions.filter(s => dayKey(s.started_at) === dateK)).done : null;
       const edit = fn => {
         if (scope === 'usual') {
           // last week keeps the plan it had, so changing your usual week doesn't rewrite history
@@ -113,8 +118,9 @@ export function daySheet(offset, day, onChange) {
         scope === 'week' && offset >= 0 && hasOwnChanges(offset) && h('p', { class: 'muted small plan-note' }, 'This week has its own changes. ',
           h('button', { class: 'link-inline', onclick: () => { delete state.plan.weeks[weekKey(offset)]; savePlan(); scope = 'usual'; redraw(); onChange?.(); } }, 'Go back to your usual week')),
         scope === 'usual' && hasOwnChanges(offset) && h('p', { class: 'muted small plan-note' }, 'Changes here apply from next time — this week has its own plan.'),
-        h('div', { class: 'plan-items' }, items.length ? items.map((it, i) => h('div', { class: 'plan-item' },
-          h('span', { class: 'act-ico' }, ic(itemIcon(it), 18)), h('span', { class: 'grow' }, itemName(it)),
+        h('div', { class: 'plan-items' }, items.length ? items.map((it, i) => h('div', { class: 'plan-item' + (doneFlags?.[i] ? ' done' : '') },
+          h('span', { class: 'act-ico' }, ic(doneFlags?.[i] ? 'check' : itemIcon(it), 18)), h('span', { class: 'grow' }, itemName(it)),
+          canTick && !doneFlags[i] && h('button', { class: 'btn small did-btn', onclick: () => { close(); didItSheet(it, dateK, onChange); } }, 'I did this'),
           h('button', { class: 'icon-btn', 'aria-label': 'Remove ' + itemName(it), onclick: () => edit(list => list.splice(i, 1)) }, ic('close', 18))))
           : h('p', { class: 'muted' }, 'Rest day')),
         h('div', { class: 'pick-head' }, 'Add a session'),
@@ -133,6 +139,44 @@ export function daySheet(offset, day, onChange) {
     redraw();
     return body;
   });
+}
+
+// ---------- forgot to log it? ------------------------------------------------------------
+const refreshPage = () => window.dispatchEvent(new HashChangeEvent('hashchange'));
+/** "I did this" for a planned session: add the details (dated that day), or just tick it off. */
+export function didItSheet(it, dateK, onChange) {
+  const when = new Date(dateK + 'T12:00');
+  const nice = dateK === dayKey(new Date()) ? 'today' : when.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' });
+  const gym = it.t === 'routine' || it.t === 'label';
+  sheet('I did this', close => h('div', { class: 'did-sheet' },
+    h('p', {}, h('strong', {}, itemName(it)), ` · ${nice}`),
+    h('button', { class: 'btn primary block', onclick: () => {
+      close();
+      if (it.t === 'routine') return pastWorkoutSheet({ date: dateK, routineId: state.routines.some(r => r.id === it.id) ? it.id : null, name: itemName(it) });
+      if (it.t === 'label') return pastWorkoutSheet({ date: dateK, name: it.text });
+      logActivity(it.t, null, { date: dateK, sport: it.t === 'other' ? it.sport || '' : undefined });
+    } }, ic('edit', 18), 'Add the details'),
+    h('p', { class: 'muted small center' }, gym ? 'Exercises, sets, weights and reps — counts towards your records and muscle map too.' : 'Distance and time — counts towards your stats and personal bests too.'),
+    h('button', { class: 'btn block', onclick: () => {
+      // a session with no details: counts for the plan, rings and streak
+      const at = dateK === dayKey(new Date()) ? new Date() : when;
+      api.upsert('workouts', { id: api.uuid(), owner: api.userId(), name: itemName(it), routine_id: it.t === 'routine' ? it.id : null,
+        started_at: at.toISOString(), ended_at: at.toISOString() });
+      haptic(); toast(`${itemName(it)} ticked off`); close(); onChange?.(); refreshPage();
+    } }, ic('check', 18), 'Just tick it off'),
+    h('p', { class: 'muted small center' }, 'Counts towards your plan, rings and streak, with no details.')));
+}
+
+/** This week so far: planned, done, still to come (today and later) and missed (earlier days). */
+export function weekStatus(sessions) {
+  const plan = weekPlan(0), wk = mondayStart(), today = dayKey(new Date());
+  let planned = 0, done = 0, remaining = 0, missed = 0;
+  plan.forEach((items, d) => {
+    const date = new Date(wk); date.setDate(date.getDate() + d);
+    const k = dayKey(date), f = matchDay(items, sessions.filter(s => dayKey(s.started_at) === k)).done;
+    f.forEach(x => { planned++; if (x) done++; else if (k < today) missed++; else remaining++; });
+  });
+  return { planned, done, remaining, missed };
 }
 
 // ---------- Home: the week at a glance ----------------------------------------------------
@@ -156,7 +200,7 @@ export function planCard(sessions, onChange) {
       const past = k < today, isToday = k === today;
       const next = isToday && !active() && items.find((it, i) => !done[i]);
       return h('div', { class: 'plan-day' + (isToday ? ' today' : '') + (past ? ' past' : '') },
-        h('button', { class: 'plan-day-main', onclick: () => daySheet(offset, d, changed), 'aria-label': `${name}: ${items.length ? items.map(itemName).join(', ') : 'rest'}. Tap to change.` },
+        h('button', { class: 'plan-day-main', onclick: () => daySheet(offset, d, changed, sessions), 'aria-label': `${name}: ${items.length ? items.map(itemName).join(', ') : 'rest'}. Tap to change.` },
           h('span', { class: 'plan-dow' }, h('b', {}, name.slice(0, 3)), h('small', {}, date.getDate())),
           h('span', { class: 'plan-chips' },
             items.length ? items.map((it, i) => h('span', { class: 'plan-chip' + (done[i] ? ' done' : past ? ' missed' : '') },
@@ -190,7 +234,7 @@ export function todayCard(onChange, sessions = []) {
   const today = dayKey(new Date());
   const { done } = matchDay(items, sessions.filter(s => dayKey(s.started_at) === today));
   return h('section', { class: 'card today-card' },
-    h('div', { class: 'row between' }, h('strong', {}, 'Today’s plan'), h('button', { class: 'btn ghost small', onclick: () => daySheet(0, d, onChange) }, 'Change')),
+    h('div', { class: 'row between' }, h('strong', {}, 'Today’s plan'), h('button', { class: 'btn ghost small', onclick: () => daySheet(0, d, onChange, sessions) }, 'Change')),
     !items.length && h('p', { class: 'muted small' }, 'Rest day — nothing planned.'),
     items.map((it, i) => h('div', { class: 'plan-item' + (done[i] ? ' done' : '') },
       h('span', { class: 'act-ico' }, ic(done[i] ? 'check' : itemIcon(it), 18)), h('span', { class: 'grow' }, itemName(it)),

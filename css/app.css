@@ -703,3 +703,13 @@ svg.hm rect.sel { stroke: var(--ink); stroke-width: 2; }
 .rir-btn.fail.on { background: var(--danger); color: #fff; }
 .set-no.rir-toggle small.fail { color: var(--danger); }
 .rir-tag.fail { color: var(--danger); background: var(--danger-soft); border-radius: 999px; padding: 1px 8px; }
+
+/* ---------- logging sessions afterwards (v2.10) ---------- */
+.wk-past { display: flex; align-items: center; gap: 8px; margin: 10px 0 6px; padding: 10px 14px; border-radius: var(--r); background: var(--accent-soft); color: var(--text); font-weight: 700; font-size: .92rem; }
+.wk-past svg { color: var(--accent); flex: none; }
+.past-btn { gap: 8px; margin-top: -4px; }
+.past-form .row.gap > .field { flex: 1; min-width: 0; }
+.did-btn { flex: none; min-height: 36px; padding: 0 12px; }
+.did-sheet .btn { gap: 8px; margin-top: 6px; }
+.did-sheet p.small { margin: 4px 0 10px; }
+.plan-item.done .act-ico { color: var(--accent); }

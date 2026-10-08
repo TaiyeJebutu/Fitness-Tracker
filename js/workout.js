@@ -10,17 +10,55 @@ export const active = () => api.LS.get(AKEY);
 const save = w => api.LS.set(AKEY, w);
 
 // ---------- start / finish -----------------------------------------------
-export async function startWorkout(routine) {
-  if (active()) { location.hash = '#/workout'; return; }
+/** Start a workout now — or, with past = { at, minutes }, fill in one you did earlier (no clock or rest timer). */
+export async function startWorkout(routine, past = null) {
+  if (active()) { if (past) toast('Finish or discard the workout in progress first', 'err'); location.hash = '#/workout'; return; }
   const w = {
     id: api.uuid(), name: routine?.name || 'Workout', routine_id: routine?.id || null,
-    started_at: new Date().toISOString(), items: [],
+    started_at: past ? new Date(past.at).toISOString() : new Date().toISOString(), items: [],
+    ...(past ? { past: true, minutes: past.minutes || 60 } : {}),
   };
   for (const it of routine?.items || []) w.items.push(newItem(it.exercise_id, it.rest, it.sets, it.reps, knownUni(it.exercise_id)));
   save(w);
   api.upsert('workouts', { id: w.id, name: w.name, routine_id: w.routine_id, started_at: w.started_at, owner: api.userId() });
   location.hash = '#/workout';
   fillPrev(w);
+}
+
+/** Fill in a workout you did earlier. preset: { date: 'YYYY-MM-DD', routineId, name } (e.g. from the weekly plan). */
+export function pastWorkoutSheet(preset = {}) {
+  if (active()) { toast('Finish or discard the workout in progress first', 'err'); location.hash = '#/workout'; return; }
+  const pad = n => String(n).padStart(2, '0');
+  const now = new Date(), today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const f = { date: preset.date || today, time: preset.date && preset.date !== today ? '18:00' : `${pad(Math.max(0, now.getHours() - 1))}:00`,
+    minutes: '60', pick: preset.routineId || (preset.name ? 'name' : '') };
+  sheet('Add a past workout', close => {
+    const err = h('p', { class: 'error', role: 'alert' });
+    const chips = h('div', { class: 'chips', role: 'radiogroup', 'aria-label': 'What did you do?' });
+    const opts = [...state.routines.map(r => [r.id, r.name]), ...(preset.name && !preset.routineId ? [['name', preset.name]] : []), ['', 'Empty workout']];
+    const draw = () => mount(chips, opts.map(([k, n]) => h('button', { type: 'button', class: 'chip' + (f.pick === k ? ' on' : ''), role: 'radio', 'aria-checked': String(f.pick === k),
+      onclick: () => { f.pick = k; draw(); } }, n)));
+    draw();
+    const submit = e => {
+      e.preventDefault();
+      const at = new Date(`${f.date}T${f.time || '12:00'}`), mins = Math.round(+f.minutes);
+      if (!f.date || isNaN(at)) return (err.textContent = 'Choose the date');
+      if (at > new Date()) return (err.textContent = 'That’s in the future — pick an earlier date or time');
+      if (!(mins >= 1 && mins <= 600)) return (err.textContent = 'Enter how long it took (1–600 minutes)');
+      const routine = state.routines.find(r => r.id === f.pick) || (f.pick === 'name' ? { name: preset.name, items: [] } : null);
+      close();
+      startWorkout(routine, { at, minutes: mins });
+    };
+    return h('form', { class: 'past-form', novalidate: true, onsubmit: submit },
+      h('p', { class: 'muted small' }, 'Forgot to log a workout? Fill it in here — it counts towards your streak, rings and records like any other.'),
+      h('div', { class: 'row gap' },
+        h('label', { class: 'field' }, h('span', {}, 'Date'), h('input', { type: 'date', value: f.date, max: today, 'data-noautofocus': '1', onchange: e => (f.date = e.target.value) })),
+        h('label', { class: 'field' }, h('span', {}, 'Start time'), h('input', { type: 'time', value: f.time, 'data-noautofocus': '1', onchange: e => (f.time = e.target.value) }))),
+      h('label', { class: 'field' }, h('span', {}, 'How long (minutes)'), h('input', { type: 'number', inputmode: 'numeric', min: 1, max: 600, value: f.minutes, 'data-noautofocus': '1', oninput: e => (f.minutes = e.target.value) })),
+      h('div', { class: 'field' }, h('span', {}, 'What did you do?'), chips),
+      err,
+      h('button', { class: 'btn primary block', type: 'submit' }, 'Next: add sets'));
+  });
 }
 
 function newItem(exercise_id, rest = 90, sets = 3, reps = null, uni = false) {
@@ -69,8 +107,10 @@ async function fillPrev(w) {
 
 function persistSet(w, item, s) {
   const position = w.items.indexOf(item);
+  // a workout filled in afterwards: date its sets on that day, in order
+  const created = w.past ? { created_at: new Date(+new Date(w.started_at) + position * 60000 + s.set_no * 2000 + (s.side === 'R' ? 1000 : 0)).toISOString() } : {};
   api.upsert('sets', { id: s.id, workout_id: w.id, owner: api.userId(), exercise_id: item.exercise_id,
-    position, set_no: s.set_no, reps: s.reps || 0, weight_kg: s.weight_kg || 0, rir: s.rir ?? null, ...(s.side ? { side: s.side } : {}) });
+    position, set_no: s.set_no, reps: s.reps || 0, weight_kg: s.weight_kg || 0, rir: s.rir ?? null, ...(s.side ? { side: s.side } : {}), ...created });
 }
 
 async function finish(w) {
@@ -79,7 +119,7 @@ async function finish(w) {
     if (await confirmSheet('Nothing logged', 'No sets are ticked. Discard this workout?', 'Discard')) discard(w, true);
     return;
   }
-  const ended = new Date().toISOString();
+  const ended = w.past ? new Date(+new Date(w.started_at) + (w.minutes || 60) * 60000).toISOString() : new Date().toISOString();
   api.upsert('workouts', { id: w.id, name: w.name, notes: w.notes || null, ended_at: ended, owner: api.userId(),
     started_at: w.started_at, routine_id: w.routine_id });
   api.LS.del(AKEY); stopRest();
@@ -95,7 +135,7 @@ async function finish(w) {
       h('p', {}, h('strong', {}, `${logged} set${logged === 1 ? '' : 's'}`), ' · ', duration(w.started_at, ended))),
     workoutMuscles(doneItems.flatMap(it => it.sets.filter(s => s.done).map(s => ({ exercise_id: it.exercise_id, side: s.side })))),
     routine && h('button', { class: 'btn block', onclick: () => { saveRoutine({ ...routine, items: asRoutineItems }); toast('Routine updated'); close(); } },
-      `Update “${routine.name}” with today's exercises`),
+      `Update “${routine.name}” with ${w.past ? 'this workout’s' : 'today’s'} exercises`),
     h('button', { class: 'btn block', onclick: () => {
       saveRoutine({ id: api.uuid(), name: routine ? routine.name + ' (copy)' : w.name, items: asRoutineItems });
       toast('Saved as a routine'); close(); } }, 'Save as a new routine'),
@@ -293,6 +333,11 @@ export async function editDetails(exerciseId, onSaved) {
   });
 }
 
+/** "Tue 6 Oct, 18:00 · 60 min" for a workout being filled in afterwards. */
+export const pastWhen = w => `${new Date(w.started_at).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}, ${new Date(w.started_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })} · ${w.minutes || 60} min`;
+/** Short line for the "Workout in progress" cards. */
+export const activeLine = (a, ago) => a.past ? `${a.name} · adding a past workout (${pastWhen(a)})` : `${a.name} · started ${ago(a.started_at)}`;
+
 // ---------- active workout screen ----------------------------------------
 const detailCache = new Map();
 let lastTicked = null;   // the set just ticked gets a little 'pop'
@@ -308,7 +353,9 @@ export function renderWorkout(root) {
   const upd = fn => { const cur = active(); fn(cur); save(cur); return cur; };
 
   const since = () => { const t = Math.max(0, Math.floor((Date.now() - new Date(w.started_at)) / 1000)); return t >= 3600 ? `${Math.floor(t / 3600)}:${clock(t % 3600).padStart(5, '0')}` : clock(t).padStart(5, '0'); };
-  const elapsed = h('div', { class: 'wk-clock', id: 'elapsed', 'aria-label': 'Time since you started' }, since());
+  const elapsed = w.past
+    ? h('div', { class: 'wk-past' }, ic('calendar', 18), h('span', {}, `Adding a past workout · ${pastWhen(w)}`))
+    : h('div', { class: 'wk-clock', id: 'elapsed', 'aria-label': 'Time since you started' }, since());
   const doneSets = w.items.reduce((n, it) => n + it.sets.filter(s => s.done).length, 0);
   const doneEx = w.items.filter(it => it.sets.length && it.sets.every(s => s.done)).length;
   const header = h('div', {},
@@ -320,7 +367,7 @@ export function renderWorkout(root) {
     elapsed,
     h('div', { class: 'wk-subrow' },
       h('div', { class: 'wk-sub' }, w.items.length ? `${doneEx} of ${w.items.length} exercise${w.items.length === 1 ? '' : 's'} done · ${doneSets} set${doneSets === 1 ? '' : 's'} logged` : 'Add an exercise to begin'),
-      h('button', { class: 'btn small timer-btn', onclick: timerSheet }, ic('timer', 16), 'Timer')));
+      !w.past && h('button', { class: 'btn small timer-btn', onclick: timerSheet }, ic('timer', 16), 'Timer')));
 
   const cards = w.items.map((it, idx) => {
     const d = detailCache.get(it.exercise_id);
@@ -358,7 +405,7 @@ export function renderWorkout(root) {
             t.done = !t.done && !!t.reps;
           });
           const t = cur.items[idx].sets[si];
-          if (t.done) { persistSet(cur, cur.items[idx], t); startRest(it.rest); lastTicked = t.id; rirOpen = t.id; haptic(); }
+          if (t.done) { persistSet(cur, cur.items[idx], t); if (!cur.past) startRest(it.rest); lastTicked = t.id; rirOpen = t.id; haptic(); }
           else if (rirOpen === t.id) rirOpen = null;
           else if (!t.reps) toast('Enter reps first');
           else api.remove('sets', 'id=eq.' + t.id);

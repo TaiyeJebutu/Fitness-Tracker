@@ -1,7 +1,7 @@
 // Train home, routine editor, history, and per-exercise history.
 import * as api from './api.js';
 import { state, exName, loadRoutines, saveRoutine } from './store.js';
-import { active, startWorkout, pickExercise, editDetails, detailsSummary, exerciseForm, newExerciseSheet } from './workout.js';
+import { active, activeLine, startWorkout, pastWorkoutSheet, pickExercise, editDetails, detailsSummary, exerciseForm, newExerciseSheet } from './workout.js';
 import { details, setUnilateral, updateExercise, deleteExercise, CATEGORIES } from './store.js';
 import { avatar } from './avatar.js';
 import { logActivity, activityCard, loadActivities, KINDS } from './cardio.js';
@@ -16,13 +16,14 @@ export async function renderTrain(root) {
     mount(root,
       h('h1', {}, 'Train'),
       a && h('a', { class: 'card resume', href: '#/workout' },
-        h('strong', {}, 'Workout in progress'), h('span', { class: 'muted small' }, `${a.name} · started ${ago(a.started_at)}`),
+        h('strong', {}, 'Workout in progress'), h('span', { class: 'muted small' }, activeLine(a, ago)),
         h('span', { class: 'btn primary small' }, 'Resume')),
       todayCard(draw, todaySessions),
       !a && h('button', { class: 'btn primary block big', onclick: () => startWorkout(null) }, ic('play', 20), 'Start empty workout'),
       h('div', { class: 'log-row' }, ['run', 'swim', 'other'].map(k => h('button', { class: 'btn log-btn', onclick: () => logActivity(k) },
         ic(KINDS[k].icon, 20), h('span', {}, k === 'other' ? 'Other' : KINDS[k].label)))),
       h('p', { class: 'muted small center log-hint' }, 'Log a run, swim or other activity after you’ve done it.'),
+      !a && h('button', { class: 'btn ghost block past-btn', onclick: () => pastWorkoutSheet() }, ic('calendar', 18), 'Add a past gym workout'),
       h('div', { class: 'section-head' }, h('h2', {}, 'Routines'), h('div', { class: 'row gap' },
         h('a', { class: 'btn small ghost', href: '#/exercises' }, 'Exercises'), h('a', { class: 'btn small', href: '#/routine/new' }, ic('plus', 18), 'New'))),
       state.routines.length ? state.routines.map(r => h('div', { class: 'card routine' },

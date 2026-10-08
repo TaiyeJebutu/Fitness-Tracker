@@ -1,11 +1,11 @@
 // Home dashboard: activity grid, this week, trends, PRs, badges and bodyweight.
 import * as api from './api.js';
 import { state, exName, METRICS } from './store.js';
-import { active } from './workout.js';
+import { active, activeLine } from './workout.js';
 import { avatar } from './avatar.js';
 import { earnedBy, badgeStrip } from './badges.js';
 import { fmtMetric } from './social.js';
-import { loadPlan, planCard, plannedCount, toSessions } from './plan.js';
+import { loadPlan, planCard, plannedCount, toSessions, weekStatus } from './plan.js';
 import { muscleCard } from './musclemap.js';
 import { chooseActivity, activityName, fmtDist, KINDS, hmShort } from './cardio.js';
 import { h, svg, mount, spinner, toast, fmtW, fmtBig, fmtDay, fmtDate, mondayStart, e1rm, toW, wUnit, ago, ic, sheet, currentPage } from './ui.js';
@@ -19,6 +19,7 @@ const shortDate = d => new Date(d).toLocaleDateString(undefined, { day: 'numeric
 /** Everything the dashboard needs for one person. Cached so it still works offline. */
 export async function activityData(uid, { withSets = true } = {}) {
   const key = 'ft.dash.' + uid;
+  const pending = api.LS.get('ft.outbox', []);   // read before fetching, so nothing saved meanwhile slips through the gap
   try {
     const [workouts, sets, activities] = await Promise.all([
       api.getAll(`workouts?owner=eq.${uid}&ended_at=not.is.null&select=id,name,routine_id,started_at,ended_at&order=started_at.asc`),
@@ -26,12 +27,30 @@ export async function activityData(uid, { withSets = true } = {}) {
       api.getAll(`activities?owner=eq.${uid}&select=id,kind,sport,title,started_at,duration_s,distance_m&order=started_at.asc`).catch(() => [])]);
     const data = { workouts, sets, activities };
     if (uid === api.userId()) api.LS.set(key, data);
-    return data;
+    return withPending(data, uid, pending);
   } catch (e) {
     const c = api.LS.get(key);
-    if (c) return c;
+    if (c) return withPending(c, uid, pending);
     throw e;
   }
+}
+/** Add your changes that haven't reached the server yet (offline, or saved a moment ago), so they show straight away. */
+function withPending(data, uid, out) {
+  if (uid !== api.userId()) return data;
+  if (!out.length) return data;
+  const merge = (list, table, ok) => {
+    const byId = new Map(list.map(r => [r.id, r]));
+    for (const o of out) {
+      if (o.table !== table) continue;
+      if (o.op === 'upsert' && o.row?.owner === uid) { const r = { created_at: new Date().toISOString(), ...byId.get(o.row.id), ...o.row }; if (ok(r)) byId.set(r.id, r); else byId.delete(r.id); }
+      else if (o.op === 'delete') { const id = /^id=eq\.(.+)$/.exec(o.filter || '')?.[1]; if (id) byId.delete(id); }
+    }
+    return [...byId.values()].sort((a, b) => new Date(a.started_at || a.created_at) - new Date(b.started_at || b.created_at));
+  };
+  const workouts = merge(data.workouts, 'workouts', w => w.ended_at != null);
+  const ids = new Set(workouts.map(w => w.id));
+  return { ...data, workouts, activities: merge(data.activities || [], 'activities', () => true),
+    sets: data.sets.length || out.some(o => o.table === 'sets') ? merge(data.sets, 'sets', x => ids.has(x.workout_id)) : data.sets };
 }
 
 /** Per-day totals: day key -> { sets, effort, workouts: [{id, name, href}] }.
@@ -148,7 +167,9 @@ const tile = (label, value, delta, goodUp = true) => h('div', { class: 'stat til
 /** Three rings on one scale: outer = your goal, middle = your average, inner = this week.
  *  A full ring is 7 sessions, or more if the goal, average or this week is higher, so the rings stay comparable. */
 export const GOAL_MAX = 30;
-function streakCard(streak, done, goal, avg, thisWeek, fromPlan = false) {
+/** plan: this week's plan status ({ planned, done, remaining, missed }) when you have one, else null. */
+function streakCard(streak, done, goal, avg, thisWeek, plan = null) {
+  const fromPlan = !!plan;
   const MAX = Math.max(7, goal, Math.ceil(avg || 0), done);
   const ring = (r, v, cls) => {
     const C = 2 * Math.PI * r;
@@ -158,14 +179,20 @@ function streakCard(streak, done, goal, avg, thisWeek, fromPlan = false) {
   };
   const avgTxt = avg == null ? 'after your first full week' : String(Math.round(avg * 10) / 10);
   const left = goal - done;
-  const note = done >= goal ? (fromPlan ? 'This week’s plan is done. Lovely work.' : 'Goal reached this week. Lovely work.')
-    : fromPlan ? `${left} more planned session${left === 1 ? '' : 's'} this week` : `${left} more session${left === 1 ? '' : 's'} to hit your goal`;
+  const s = n => (n === 1 ? '' : 's');
+  // with a plan: only today and later count as still to do; earlier days you didn't do are "missed"
+  const planNote = p => p.done >= p.planned ? 'This week’s plan is done. Lovely work.'
+    : p.remaining ? `${p.remaining} more planned session${s(p.remaining)} this week${p.missed ? ` · ${p.missed} missed` : ''}`
+    : `Nothing else planned this week · ${p.missed} missed`;
+  const note = !fromPlan && done >= goal ? 'Goal reached this week. Lovely work.'
+    : fromPlan ? (done >= goal && plan.done >= plan.planned ? 'This week’s plan is done. Lovely work.' : planNote(plan))
+    : `${left} more session${s(left)} to hit your goal`;
   return h('button', { class: 'card streak-card rings-card', onclick: () => goalSheet(), 'aria-label': `Weekly goal ${goal}${fromPlan ? ', from your plan' : ''}. Your average ${avgTxt}. This week ${done}. Tap to change your goal.` },
     h('div', { class: 'ring rings', 'aria-hidden': 'true' },
       svg('svg', { width: 104, height: 104, viewBox: '0 0 104 104' }, ring(44, goal, 'goal'), ring(33, avg || 0, 'avg'), ring(22, done, 'now'))),
     h('div', { class: 'rings-info' },
       h('div', { class: 'title' }, streak ? `${streak}-week streak` : 'No streak yet'),
-      h('div', { class: 'small streak-note' }, streak || thisWeek ? note : 'Train this week to start a streak.'),
+      h('div', { class: 'small streak-note' }, streak || thisWeek || fromPlan ? note : 'Train this week to start a streak.'),
       h('div', { class: 'ring-legend' },
         h('span', {}, h('i', { class: 'goal' }), fromPlan ? `Goal · ${goal} planned` : `Goal · ${goal} a week`),
         h('span', {}, h('i', { class: 'avg' }), `Your average · ${avgTxt}`),
@@ -211,7 +238,7 @@ export async function renderHome(root) {
         h('h1', {}, greet + (me.username ? ', ' + me.username : ''))),
       h('a', { href: '#/me', 'aria-label': 'Me' }, avatar(me, 44))),
     a && h('a', { class: 'card resume', href: '#/workout' }, h('strong', {}, 'Workout in progress'),
-        h('span', { class: 'muted small' }, `${a.name} · started ${ago(a.started_at)}`), h('span', { class: 'btn primary small' }, 'Resume')),
+        h('span', { class: 'muted small' }, activeLine(a, ago)), h('span', { class: 'btn primary small' }, 'Resume')),
     !a && h('button', { class: 'fab', onclick: chooseActivity }, ic('plus', 20), 'Start or log'),
     body);
 
@@ -285,8 +312,10 @@ export async function renderHome(root) {
   const bwDelta = bwLatest && bw30 ? toW(bwLatest.value - bw30.value) : null;
   const bwDef = METRICS.find(m => m.key === 'bodyweight');
 
-  const ringsBox = h('div', {}, streakCard(streak, cur.w, goal, avg, weeksWith.has(0), plannedCount(0) > 0));
-  const plan = planCard(toSessions(workouts, acts), () => mount(ringsBox, streakCard(streak, cur.w, goalNow(), avg, weeksWith.has(0), plannedCount(0) > 0)));
+  const sessionsList = toSessions(workouts, acts);
+  const rings = () => streakCard(streak, cur.w, goalNow(), avg, weeksWith.has(0), plannedCount(0) > 0 ? weekStatus(sessionsList) : null);
+  const ringsBox = h('div', {}, rings());
+  const plan = planCard(sessionsList, () => mount(ringsBox, rings()));
   mount(body,
     ringsBox,
     plan,

@@ -34,12 +34,14 @@ export const TOPICS = [
     body: ['Your weekly goal is how many sessions a week you’re aiming for. It starts at 3 — change it any time.',
       { steps: ['Tap the rings on Home (or Me → Workouts → Weekly goal).', 'Tap 1 to 7, or type your own number (up to 30 a week). It’s saved on your account, so it’s the same on all your devices.'] },
       'The rings, from the outside in: your goal (green), your average sessions per week over up to the last 8 full weeks (gold), and this week so far. A full ring is 7 sessions — or more if your goal, average or this week is higher, so the three always stay comparable.',
+      'With a plan, the note under your streak counts only today and later days as still to do — e.g. “3 more planned sessions this week · 4 missed”. Missed sessions you actually did can still be added: see “Plan your week”.',
       'Your average appears once you’ve had a full week in the app. Gym workouts, runs, swims and other activities all count towards every ring.',
       { tip: 'If you’ve planned your week, your goal follows the plan automatically: plan 4 sessions and your goal is 4. The number you set here is used for weeks with nothing planned.' }] },
   { id: 'plan-week', section: 'Getting started', title: 'Plan your week', keywords: 'plan schedule week weekly calendar day days planner routine rest day monday sessions timetable', screens: [],
     body: ['Plan which sessions you’ll do on which day — no times needed. You’ll see the plan on Home and today’s sessions at the top of Train.',
       { steps: ['On Home, find “This week’s plan” and tap a day.', 'Add sessions: one of your routines, a run, a swim, another sport (Other…), or type your own, like “Upper body”. You can add more than one per day.', 'Choose “Every week” to change your usual week (it repeats automatically), or “This week only” for a one-off change. Tap the × next to a session to remove it.', 'Tap Done.'] },
       'Sessions get a tick as you do them: a routine is ticked when you finish a workout started from it (or with the same name), a run or swim when you log one that day, and your own sessions by anything you do that day. Past sessions you missed are crossed out.',
+      { steps: ['Did a session but forgot to log it? Tap that day on the plan card (any day this week or last week, up to today).', 'Tap “I did this” next to the session.', 'Choose “Add the details” to fill it in properly, dated that day (sets and weights for gym sessions; distance and time for runs and swims), or “Just tick it off” to count it with no details.'] },
       'Today’s sessions have a Start (or Log) button, on Home and on Train. Use the arrows on the plan card to look at last week or plan up to three weeks ahead.',
       { tip: 'Changed a week and want your usual plan back? Tap a day in that week, choose “This week only”, then “Go back to your usual week”.' },
       'Your plan is private — friends can’t see it. It also sets your weekly goal (see “Your weekly goal & the rings”).'] },
@@ -87,6 +89,10 @@ export const TOPICS = [
     body: [{ steps: ['On Train, tap “+ New” next to Routines.', 'Name it (e.g. “Push day”) and add exercises.', 'Set sets, reps and rest for each; use ↑ ↓ to reorder.', 'Tap “Save routine”.'] },
       'Each exercise also has a “Left & right” switch — see “Left & right exercises”. Tap an exercise’s name to edit its machine settings & notes.',
       'Tap a routine’s name to edit or delete it. Past workouts are kept if you delete a routine.'] },
+  { id: 'past-workout', section: 'Workouts', title: 'Add a workout you forgot to log', keywords: 'past earlier yesterday forgot missed log late backdate date previous add workout after', screens: [],
+    body: ['You can fill in a gym workout after you’ve done it, and it counts like any other: streak, rings, history, records and the muscle map.',
+      { steps: ['On Train, tap “Add a past gym workout” (or, for a planned session, tap its day on Home and then “I did this” → “Add the details”).', 'Choose the date, start time and how long it took, and the routine you did (or an empty workout).', 'Tap “Next: add sets”, then fill in and tick your sets as usual — there’s no clock or rest timer — and tap Finish.'] },
+      { tip: 'Forgot a run or swim? Log it from Train as usual and change the Date in the form.' }] },
   { id: 'history', section: 'Workouts', title: 'Workout history', keywords: 'history past previous workouts delete', screens: ['history'],
     body: ['Train → “All history” (or Me → Workout history) lists your finished workouts. Tap one to see every set and estimated 1-rep maxes, or to delete it.'] },
 
@@ -190,6 +196,10 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '2.10.0', date: '2026-10-08', items: [
+    'Forgot to log a session? Tap its day on your weekly plan and choose “I did this”: add the details for that day, or just tick it off.',
+    'New “Add a past gym workout” on Train: pick the date, time and routine, then fill in your sets.',
+    'With a weekly plan, the rings now split what’s left from what you missed — e.g. “3 more planned sessions this week · 4 missed” — instead of counting missed days as still to do.'] },
   { version: '2.9.2', date: '2026-10-01', items: [
     'Reps in reserve now has an F option for sets taken to failure — because 0 reps in reserve isn’t the same as failing a rep.',
     'Failure sets are highlighted in your history, in the workout and on your friends’ feed.'] },

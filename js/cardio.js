@@ -93,13 +93,15 @@ export function chooseActivity() {
 }
 
 // ---------- log / edit ------------------------------------------------------------
-export function logActivity(kind, existing = null) {
+/** preset (new entries only): { date: 'YYYY-MM-DD', sport } — e.g. logging a planned session afterwards. */
+export function logActivity(kind, existing = null, preset = {}) {
   const a = existing;
   const local = d => { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString(); };
   const start = a ? local(a.started_at) : local(new Date());
   const dur = a ? a.duration_s : 0;
   const f = {
-    sport: a?.sport || '', title: a?.title || '', date: start.slice(0, 10), time: start.slice(11, 16),
+    sport: a?.sport || preset.sport || '', title: a?.title || '', date: (!a && preset.date) || start.slice(0, 10),
+    time: !a && preset.date && preset.date !== start.slice(0, 10) ? '18:00' : start.slice(11, 16),
     dist: a?.distance_m != null ? String(+toDist(kind, +a.distance_m).toFixed(kind === 'swim' ? 0 : 2)) : '',
     h: dur ? String(Math.floor(dur / 3600)) : '', m: dur ? String(Math.floor((dur % 3600) / 60)) : '', s: dur ? String(dur % 60) : '',
     feel: a?.feel || null, pool: a?.pool || (kind === 'swim' ? (imperial() ? '25yd' : '25m') : null), stroke: a?.stroke || (kind === 'swim' ? 'freestyle' : null),
