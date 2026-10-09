@@ -39,7 +39,7 @@ export const TOPICS = [
       { tip: 'If you’ve planned your week, your goal follows the plan automatically: plan 4 sessions and your goal is 4. The number you set here is used for weeks with nothing planned.' }] },
   { id: 'plan-week', section: 'Getting started', title: 'Plan your week', keywords: 'plan schedule week weekly calendar day days planner routine rest day monday sessions timetable', screens: [],
     body: ['Plan which sessions you’ll do on which day — no times needed. You’ll see the plan on Home and today’s sessions at the top of Train.',
-      { steps: ['On Home, find “This week’s plan” and tap a day.', 'Add sessions: one of your routines, a run, a swim, another sport (Other…), or type your own, like “Upper body”. You can add more than one per day.', 'Choose “Every week” to change your usual week (it repeats automatically), or “This week only” for a one-off change. Tap the × next to a session to remove it.', 'Tap Done.'] },
+      { steps: ['On Home, find “This week’s plan” and tap a day.', 'Add sessions: one of your routines, a run, a swim, another sport (Other…), or type your own: tap “Gym workout (sets)” for something like “Upper body”, or “Activity (time only)” for something like “Bouldering”. You can add more than one per day.', 'Choose “Every week” to change your usual week (it repeats automatically), or “This week only” for a one-off change. Tap the × next to a session to remove it.', 'Tap Done.'] },
       'Sessions get a tick as you do them: a routine is ticked when you finish a workout started from it (or with the same name), a run or swim when you log one that day, and your own sessions by anything you do that day. Past sessions you missed are crossed out.',
       { steps: ['Did a session but forgot to log it? Tap that day on the plan card (any day this week or last week, up to today).', 'Tap “I did this” next to the session.', 'Choose “Add the details” to fill it in properly, dated that day (sets and weights for gym sessions; distance and time for runs and swims), or “Just tick it off” to count it with no details.'] },
       'Today’s sessions have a Start (or Log) button, on Home and on Train. Use the arrows on the plan card to look at last week or plan up to three weeks ahead.',
@@ -84,6 +84,7 @@ export const TOPICS = [
       { tip: 'The screen stays on while it runs so it can beep and buzz at zero. Don’t want that? Switch off “Keep the screen on while a timer runs” under Me → Workouts.' }] },
   { id: 'finish-workout', section: 'Workouts', title: 'Finish or discard a workout', keywords: 'finish end save discard cancel', screens: ['workout'],
     body: ['Tap Finish at the top. You’ll get a little celebration and a small map of the muscles you trained, then you can:', { steps: ['Update the routine you started from with today’s exercises, or', 'Save the workout as a new routine.'] },
+      'Nothing ticked? You can still “Save without sets” — handy for sessions that don’t have sets. It keeps the time and notes and counts towards your plan, rings and streak.',
       '“Discard workout” at the bottom deletes everything logged in it.'] },
   { id: 'routines', section: 'Workouts', title: 'Create and edit routines', keywords: 'routine template plan push pull legs day', screens: ['routine'],
     body: [{ steps: ['On Train, tap “+ New” next to Routines.', 'Name it (e.g. “Push day”) and add exercises.', 'Set sets, reps and rest for each; use ↑ ↓ to reorder.', 'Tap “Save routine”.'] },
@@ -100,7 +101,7 @@ export const TOPICS = [
   // ---------- Running, swimming & more ----------
   { id: 'log-activity', section: 'Running, swimming & more', title: 'Log a run, swim or other activity', keywords: 'run running swim swimming cycling walking hiking rowing football tennis yoga log activity cardio distance time pace', screens: ['activity'],
     body: ['Runs, swims and other sports are logged after you’ve done them — copy the distance and time from your watch or running app.',
-      { steps: ['On Train, tap Run, Swim or Other (or use the floating “Start or log” button on Home).', 'Enter the distance and time. Your pace (or speed) is worked out as you type.', 'Runs: add how it felt, from 1 (very easy) to 5 (very hard). Swims: pick the pool length or open water, and the stroke. Other: pick the sport — Cycling, Walking, Hiking, Rowing, Football, Tennis, Yoga, or type your own.', 'Change the date and start time if it wasn’t just now, add a title or notes if you like, and tap Save.'] },
+      { steps: ['On Train, tap Run, Swim or Other (or use the floating “Start or log” button on Home).', 'Enter the distance and time. Your pace (or speed) is worked out as you type.', 'Runs: add how it felt, from 1 (very easy) to 5 (very hard). Swims: pick the pool length or open water, and the stroke. Other: pick the sport — Cycling, Walking, Hiking, Rowing, Football, Tennis, Yoga, Bouldering, Climbing, or type your own.', 'Change the date and start time if it wasn’t just now, add a title or notes if you like, and tap Save.'] },
       'Distances follow your units setting: km and metres, or miles and yards.',
       'Open an activity from History, Home or your feed to see it, edit it or delete it. Friends can see your activities, just like your workouts.',
       { tip: 'Values have to be realistic — for example a run can’t be faster than the world record — so typos get caught before they’re saved.' },
@@ -196,6 +197,10 @@ export const TOPICS = [
 
 // Newest first. Every release adds an entry here (the guide check enforces it).
 export const CHANGELOG = [
+  { version: '2.10.1', date: '2026-10-08', items: [
+    'Typing your own session into the weekly plan now asks whether it’s a gym workout (sets) or an activity (time only) — so Bouldering opens the activity form, not sets. Sessions you’ve already planned with a sport’s name are switched over automatically.',
+    'Bouldering and Climbing are now in the sports list under Other.',
+    'Finishing a workout with no sets ticked now offers “Save without sets”, instead of only discarding it.'] },
   { version: '2.10.0', date: '2026-10-08', items: [
     'Forgot to log a session? Tap its day on your weekly plan and choose “I did this”: add the details for that day, or just tick it off.',
     'New “Add a past gym workout” on Train: pick the date, time and routine, then fill in your sets.',

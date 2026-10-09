@@ -14,6 +14,9 @@ const dayKey = d => { const x = new Date(d); return `${x.getFullYear()}-${String
 export const weekKey = (offset = 0) => { const d = mondayStart(); d.setDate(d.getDate() + 7 * offset); return dayKey(d); };
 
 // ---------- load / save ---------------------------------------------------------
+/** A typed session named like a sport ("Bouldering") is an activity (time only), not a gym workout with sets. */
+const sportNamed = text => SPORTS.find(([n]) => n.toLowerCase() === String(text || '').trim().toLowerCase())?.[0];
+const asActivityIfSport = it => (it?.t === 'label' && sportNamed(it.text) ? { t: 'other', sport: sportNamed(it.text) } : it);
 export async function loadPlan() {
   const uid = api.userId();
   let row = null;
@@ -21,7 +24,9 @@ export async function loadPlan() {
   const pend = api.LS.get('ft.outbox', []).filter(o => o.op === 'upsert' && o.table === 'training_plans' && o.row?.owner === uid).map(o => o.row).pop();
   const local = api.LS.get(PKEY);
   row = pend || row || (local?.owner === uid ? local : null);
-  state.plan = { owner: uid, template: Array.isArray(row?.template) && row.template.length === 7 ? row.template : empty(), weeks: row?.weeks || {} };
+  const fix = days => days.map(items => (items || []).map(asActivityIfSport));
+  state.plan = { owner: uid, template: Array.isArray(row?.template) && row.template.length === 7 ? fix(row.template) : empty(),
+    weeks: Object.fromEntries(Object.entries(row?.weeks || {}).map(([k, v]) => [k, Array.isArray(v) ? fix(v) : v])) };
   return state.plan;
 }
 function savePlan() {
@@ -76,7 +81,7 @@ export function matchDay(items, sessions) {
 export function startItem(it) {
   if (it.t === 'routine') { const r = state.routines.find(x => x.id === it.id); return startWorkout(r || { name: it.name, items: [] }); }
   if (it.t === 'label') return startWorkout({ name: it.text, items: [] });
-  logActivity(it.t);
+  logActivity(it.t, null, it.t === 'other' && it.sport ? { sport: it.sport } : {});
 }
 
 // ---------- editing a day ------------------------------------------------------------
@@ -111,6 +116,9 @@ export function daySheet(offset, day, onChange, sessions = null) {
         h('button', { class: 'chip', onclick: () => add({ t: 'other', sport: n }) }, n)),
         h('button', { class: 'chip', onclick: () => add({ t: 'other', sport: null }) }, 'Any'));
       let label = '';
+      // a typed session: a gym workout (sets) or an activity like bouldering (time only)
+      const addTyped = kind => { const t = label.trim().slice(0, 40); if (!t) return toast('Type a name first', 'err');
+        add(kind === 'activity' ? { t: 'other', sport: sportNamed(t) || t } : { t: 'label', text: t }); };
       mount(body,
         offset >= 0 && h('div', { class: 'seg', role: 'group', 'aria-label': 'Which weeks' },
           [['usual', 'Every week'], ['week', offset === 0 ? 'This week only' : offset === 1 ? 'Next week only' : 'That week only']].map(([k, l]) =>
@@ -130,9 +138,11 @@ export function daySheet(offset, day, onChange, sessions = null) {
           h('button', { class: 'chip', onclick: () => add({ t: 'swim' }) }, ic('swim', 16), 'Swim'),
           h('button', { class: 'chip', onclick: () => { other.hidden = !other.hidden; } }, ic('pulse', 16), 'Other…')),
         other,
-        h('form', { class: 'row gap plan-label', novalidate: true, onsubmit: e => { e.preventDefault(); const t = label.trim(); if (!t) return; add({ t: 'label', text: t.slice(0, 40) }); } },
-          h('input', { placeholder: 'Or type one, e.g. Upper body', maxlength: 40, 'aria-label': 'Custom session', 'data-noautofocus': '1', oninput: e => (label = e.target.value) }),
-          h('button', { class: 'btn', type: 'submit' }, 'Add')),
+        h('form', { class: 'plan-label', novalidate: true, onsubmit: e => { e.preventDefault(); addTyped(sportNamed(label) ? 'activity' : 'gym'); } },
+          h('input', { placeholder: 'Or type one, e.g. Upper body or Bouldering', maxlength: 40, 'aria-label': 'Custom session', 'data-noautofocus': '1', oninput: e => (label = e.target.value) }),
+          h('div', { class: 'row gap plan-label-kind' },
+            h('button', { class: 'btn small', type: 'button', onclick: () => addTyped('gym') }, ic('train', 16), 'Gym workout (sets)'),
+            h('button', { class: 'btn small', type: 'button', onclick: () => addTyped('activity') }, ic('pulse', 16), 'Activity (time only)'))),
         !state.routines.length && h('p', { class: 'muted small' }, 'Tip: save routines on the Train tab to plan them here and start them in one tap.'),
         h('button', { class: 'btn primary block', onclick: close }, 'Done'));
     };

@@ -116,8 +116,9 @@ function persistSet(w, item, s) {
 async function finish(w) {
   const logged = w.items.reduce((n, it) => n + it.sets.filter(s => s.done).length, 0);
   if (!logged) {
-    if (await confirmSheet('Nothing logged', 'No sets are ticked. Discard this workout?', 'Discard')) discard(w, true);
-    return;
+    const choice = await noSetsSheet();
+    if (choice === 'discard') discard(w, true);
+    if (choice !== 'save') return;
   }
   const ended = w.past ? new Date(+new Date(w.started_at) + (w.minutes || 60) * 60000).toISOString() : new Date().toISOString();
   api.upsert('workouts', { id: w.id, name: w.name, notes: w.notes || null, ended_at: ended, owner: api.userId(),
@@ -128,7 +129,8 @@ async function finish(w) {
   const asRoutineItems = doneItems.map(it => ({ exercise_id: it.exercise_id, sets: new Set(it.sets.filter(s => s.done).map(s => s.set_no)).size,
     reps: it.targetReps || it.sets.find(s => s.done)?.reps || null, rest: it.rest }));
   const routine = state.routines.find(r => r.id === w.routine_id);
-  location.hash = '#/history/' + w.id;  // switch screen first, then show the pop-up on top
+  location.hash = '#/history/' + w.id;
+  if (!logged) { toast(`${w.name} saved`); return; }   // saved without sets: nothing more to show  // switch screen first, then show the pop-up on top
   confetti();
   sheet('Workout saved', close => h('div', {},
     h('div', { class: 'saved-hero' }, h('span', { class: 'saved-ico' }, ic('check', 30)),
@@ -140,6 +142,21 @@ async function finish(w) {
       saveRoutine({ id: api.uuid(), name: routine ? routine.name + ' (copy)' : w.name, items: asRoutineItems });
       toast('Saved as a routine'); close(); } }, 'Save as a new routine'),
     h('button', { class: 'btn primary block', onclick: close }, 'Done')));
+}
+
+/** No sets ticked: save it anyway (time and notes only), discard it, or carry on. Resolves 'save' | 'discard' | null. */
+function noSetsSheet() {
+  return new Promise(resolve => {
+    let done = false;
+    const pick = (c, v) => { done = true; c(); resolve(v); };
+    sheet('No sets ticked', c => h('div', { class: 'nosets-sheet' },
+      h('p', { class: 'muted' }, 'Not everything has sets — you can save this as a session with just its time and notes. It still counts towards your plan, rings and streak.'),
+      h('button', { class: 'btn primary block', onclick: () => pick(c, 'save') }, 'Save without sets'),
+      h('button', { class: 'btn block', onclick: () => pick(c, null) }, 'Keep going'),
+      h('button', { class: 'btn danger ghost block', onclick: () => pick(c, 'discard') }, 'Discard workout')));
+    const obs = new MutationObserver(() => { if (!document.querySelector('.sheet-wrap') && !done) { obs.disconnect(); resolve(null); } });
+    obs.observe(document.body, { childList: true });
+  });
 }
 
 async function discard(w, skipConfirm) {

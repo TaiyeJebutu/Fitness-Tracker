@@ -14,7 +14,7 @@ export const KINDS = {
   other: { label: 'Activity', plural: 'Other activities', icon: 'pulse', log: 'Log an activity' },
 };
 // Other sports: [name, has a distance?]
-export const SPORTS = [['Cycling', true], ['Walking', true], ['Hiking', true], ['Rowing', true], ['Football', false], ['Tennis', false], ['Yoga', false]];
+export const SPORTS = [['Cycling', true], ['Walking', true], ['Hiking', true], ['Rowing', true], ['Football', false], ['Tennis', false], ['Yoga', false], ['Bouldering', false], ['Climbing', false]];
 const FEEL = ['Very easy', 'Easy', 'OK', 'Hard', 'Very hard'];
 const POOLS = [['25m', '25 m pool'], ['50m', '50 m pool'], ['25yd', '25 yd pool'], ['open', 'Open water']];
 const STROKES = [['freestyle', 'Freestyle'], ['breaststroke', 'Breaststroke'], ['backstroke', 'Backstroke'], ['butterfly', 'Butterfly'], ['mixed', 'Mixed']];

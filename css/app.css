@@ -713,3 +713,9 @@ svg.hm rect.sel { stroke: var(--ink); stroke-width: 2; }
 .did-sheet .btn { gap: 8px; margin-top: 6px; }
 .did-sheet p.small { margin: 4px 0 10px; }
 .plan-item.done .act-ico { color: var(--accent); }
+
+/* ---------- typed sessions: gym or activity; saving without sets (v2.10.1) ---------- */
+.plan-label { display: block; }
+.plan-label input { width: 100%; margin: 0 0 8px; }
+.plan-label-kind .btn { flex: 1; gap: 6px; min-width: 0; padding: 0 10px; }
+.nosets-sheet .btn { margin-top: 6px; }
